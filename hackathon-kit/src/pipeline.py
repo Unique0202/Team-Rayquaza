@@ -148,18 +148,35 @@ def build_gold(silver: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     return fact, dims
 
 
-def load_gold(fact: pd.DataFrame, dims: dict) -> None:
-    """Write the star schema inside ONE transaction.
+def create_schema(fact: pd.DataFrame, dims: dict) -> None:
+    """Create the gold tables EMPTY, before the real load.
 
-    This is the ACID moment: if the fact load fails halfway, the dimension
-    writes roll back too, rather than leaving a warehouse that looks populated
-    but is internally inconsistent.
+    Why this is a separate step: pandas' to_sql issues the CREATE TABLE outside
+    the surrounding transaction, so a rollback leaves an empty table behind even
+    though no rows survive. Creating tables here and keeping load_gold() strictly
+    append-only makes the actual data load genuinely atomic.
+    (Verified on this machine, 2026-10-10 - pandas 3.0 / SQLAlchemy 2.1.)
     """
     with engine.begin() as conn:
         for name, dim in dims.items():
-            dim.to_sql(name, conn, if_exists="replace", index=False)
-        fact.to_sql("fact_events", conn, if_exists="replace", index=False)
-    print(f"  load_gold    : committed in one transaction")
+            dim.head(0).to_sql(name, conn, if_exists="replace", index=False)
+        fact.head(0).to_sql("fact_events", conn, if_exists="replace", index=False)
+    print("  schema       : gold tables created empty")
+
+
+def load_gold(fact: pd.DataFrame, dims: dict) -> None:
+    """Write the star schema inside ONE transaction, append-only.
+
+    This is the ACID moment: if the fact load fails halfway, the dimension rows
+    roll back too, rather than leaving a warehouse that looks populated but is
+    internally inconsistent. Tables already exist (see create_schema), so this
+    transaction contains only DML and rolls back completely.
+    """
+    with engine.begin() as conn:
+        for name, dim in dims.items():
+            dim.to_sql(name, conn, if_exists="append", index=False)
+        fact.to_sql("fact_events", conn, if_exists="append", index=False)
+    print(f"  load_gold    : {len(fact):,} fact rows committed in one transaction")
 
 
 # ----------------------------------------------------------------------------
@@ -204,7 +221,8 @@ def main() -> None:
     silver = transform_silver(bronze)
     silver = validate(silver)
     fact, dims = build_gold(silver)
-    load_gold(fact, dims)
+    create_schema(fact, dims)   # DDL first, outside the data transaction
+    load_gold(fact, dims)       # DML only -> genuinely atomic
     run_analytics()
     print("\nDone. Run again - the results are identical (idempotent).\n")
 

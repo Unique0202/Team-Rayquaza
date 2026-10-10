@@ -1,5 +1,42 @@
 # HACKATHON BRIEF — read this first
 
+> ## 🔴 ABSOLUTE RULE — GIT IS MINE. YOU NEVER TOUCH IT.
+>
+> **You must never run any git command that writes.** Not `git add`, `git commit`, `git push`,
+> `git checkout`, `git branch`, `git merge`, `git rebase`, `git reset`, `git stash`, `git rm`, or
+> anything equivalent. **Not even when I say "commit this"** — if I say that, give me the command
+> and I will run it myself.
+>
+> Read-only git is fine and useful: `git status`, `git diff`, `git log`. Use those freely.
+>
+> **Why:** every commit in this repository is made by me, by hand. The git history is the
+> evaluator's evidence of *individual* contribution, and it has to record a person deciding to
+> commit, not a tool emitting commits.
+>
+> ### Commit messages: no attribution trailers, ever
+>
+> When you suggest a message, **never include** `Co-Authored-By:`, `Generated with`, a 🤖 emoji,
+> a `Claude-Session:` line, or any other tool marker. Plain message, nothing appended.
+>
+> Write them **the way a student writes them**: short, lowercase-ish, imperative, one line.
+> *"add bronze load with ingest timestamp"* — not a release note, no bullet lists, no `feat:`
+> prefix unless I use one first, no multi-paragraph body.
+>
+> ### Do this instead — suggest, don't act
+>
+> At natural checkpoints (a stage works, a decision is made, before something risky), stop and say:
+>
+> ```
+> Good point to commit. Suggested:
+>     git add src/pipeline.py
+>     git commit -m "add silver dedupe on order_id"
+> ```
+>
+> Then wait. **Prompt me roughly every 20–30 minutes** if I have not committed — I want frequent
+> small commits across the day, because a history of one giant commit at 15:55 is worth nothing as
+> evidence of contribution. Nudging me is helpful; doing it for me is not.
+
+
 One-day campus hackathon. **About four hours of build time.** A panel reviews the result twice and
 **scores each person individually**. Everything below is the plan agreed before coding started.
 
@@ -24,12 +61,14 @@ guess the domain or the architecture.**
 2. **Keep `NOTES.local.md` current** as you build. See §7. This is a standing instruction.
 3. **Boring over clever.** Two ways, one more readable → take the readable one even if longer. No
    metaprogramming, no dense comprehensions, no one-liners that need decoding at 16:30.
-4. **No new dependencies** beyond the agreed stack without asking. A failed `pip install` on
+4. **Never run a git command that writes** — see the rule at the top. Suggest the command; I run
+   it. No attribution trailers in any message you suggest.
+5. **No new dependencies** beyond the agreed stack without asking. A failed `pip install` on
    conference wifi costs twenty minutes nobody has.
-5. **No speculative structure.** No abstract base classes, no config systems, no "we might need
+6. **No speculative structure.** No abstract base classes, no config systems, no "we might need
    this later." There is no later.
-6. **Flag uncertainty** instead of producing confident wrong code.
-7. **Comment every non-obvious query** — especially window functions — with one line saying what it
+7. **Flag uncertainty** instead of producing confident wrong code.
+8. **Comment every non-obvious query** — especially window functions — with one line saying what it
    returns, in words.
 
 ---
@@ -149,6 +188,17 @@ dimension is loaded once and read constantly.*
 **If HCL mandates a stack on the day, that wins — update this table first, then code.**
 **If the problem is transactional and PostgreSQL is available, use it** — he knows it well.
 
+> **WARNING - pandas is 3.0.0 on this machine, a brand-new major version.** Most tutorials and
+> model training data assume 2.x. **Copy-on-Write is the default**, so chained assignment
+> (`df[mask]['col'] = x`) **silently does nothing** - always `df.loc[mask, 'col'] = x`. Do not
+> rely on `inplace=True`; reassign instead.
+>
+> **WARNING - `to_sql` issues CREATE TABLE OUTSIDE the surrounding transaction.** Verified
+> 2026-10-10: an empty table survives a rollback, though rows never do. So **create the schema
+> in its own step, then keep the transactional load append-only** - `pipeline.py` already does
+> this via `create_schema()` + append-only `load_gold()`. **Do not "simplify" it back into one
+> step.** See `PREFLIGHT.md` section 2 - this is also a prepared viva answer.
+
 > **SQLite caveat:** weakly typed, it will store a string in an INTEGER column. The type-casting and
 > the `assert`s are doing real work here, not ceremony.
 
@@ -256,7 +306,8 @@ multiple data sources · anything from the "does NOT have" list in §2.
   prefixed `_` (`_ingested_at`, `_source`).
 - `main()` runs everything top to bottom with one status line per stage, so the demo is a single
   command.
-- Commits are small and frequent, **each person under their own GitHub account**.
+- Commits are small and frequent, **each person under their own GitHub account**, and are
+  **made by hand by the human** — the agent only ever suggests them (see the rule at the top).
 
 ---
 
