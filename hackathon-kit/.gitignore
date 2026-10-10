@@ -9,3 +9,6 @@ venv/
 .DS_Store
 
 PROMPTS.md
+
+# local SQLite warehouse created by pipeline.py
+*.db
