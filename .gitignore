@@ -1,0 +1,11 @@
+# PRIVATE working log - never commit, never share with the panel
+NOTES.local.md
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.DS_Store
+
+PROMPTS.md
