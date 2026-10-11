@@ -350,6 +350,8 @@ def model_info():
         card = M.model_info()
     except (OSError, ValueError) as exc:
         raise HTTPException(503, "Model card missing or unreadable; obtain C's model_card.json.") from exc
+    # C's file follows HCL Annex C: {"model_card": {...}} - read the card inside the wrapper.
+    card = card.get("model_card", card)
     # C's card uses 'version'; expose the API's required model_version too.
     if card.get("version", card.get("model_version")) != bundle["model_version"]:
         raise HTTPException(503, "Model card and saved model versions differ.")
