@@ -1,0 +1,7 @@
+action,rating_class,cost,annual_budget
+replace,small,150000,5000000
+replace,medium,350000,5000000
+replace,large,700000,5000000
+inspect,small,10000,5000000
+inspect,medium,15000,5000000
+inspect,large,25000,5000000
