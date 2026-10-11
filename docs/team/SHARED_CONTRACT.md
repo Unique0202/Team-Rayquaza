@@ -30,8 +30,9 @@ worse than the model predicted, its risk should go up. → See §8 for how that 
    This is what keeps `git pull` free of conflicts.
 5. **Readable over clever.** Every line must be explainable by a student under questioning. Comment every
    non-obvious query and every ML step with one plain-English line.
-6. **Libraries:** pandas, numpy, scikit-learn, scipy, fastapi, uvicorn, pydantic, joblib, streamlit,
-   python-multipart, pytest. **Nothing else** without asking.
+6. **Libraries (this is the list we told the panel):** pandas, numpy, sqlalchemy, scikit-learn, scipy, joblib,
+   matplotlib, fastapi, uvicorn, pydantic, python-multipart, streamlit, requests, pytest, httpx.
+   **Nothing else** without asking. Only `streamlit` and `python-multipart` still need `pip install`.
 7. **Python package style:** `src/__init__.py` exists; import as `from src.features import build_features`;
    run modules as `python -m src.pipeline` from the repo root.
 8. **Seeds:** `SEED = 42` everywhere randomness appears.
@@ -113,12 +114,26 @@ Cleaning rules: IDs `strip().upper()`; exact duplicates dropped; duplicate keys 
 | `fact_oil_test` | one transformer × one test | `transformer_key, date_key`, six gases, `tdcg` (sum of the six) |
 | `fact_operation` | one transformer × one month | `transformer_key, date_key, load_pct, top_oil_temp_c, age_years, is_failure INT, is_repair INT` |
 | **`fact_snapshot`** | **one transformer × one quarterly snapshot date** | `transformer_key, transformer_id, snapshot_date`, **all `FEATURE_COLUMNS` (§6)**, `failed_next_12m INT` (NULL = not labelable yet) |
-| `run_log` | one scoring / plan run | `run_id TEXT, created_at, kind ('score'/'plan'), as_of, budget, model_version` |
+| `dim_run` | one scoring / plan run | `run_id TEXT` (key), `created_at, kind ('score'/'plan'), as_of, budget, model_version` |
+| `dim_action` | one action × size class | `action_key INT` (surrogate), `action ('replace'/'inspect'), rating_class, cost` — from `silver_costs` |
 | `fact_risk` | one run × one transformer | `run_id, transformer_id, failure_prob_12m, prob_low, prob_high, status, health_score, impact_weight, risk_score, risk_low, risk_high, model_version` |
-| `fact_plan` | one run × one chosen action | `run_id, transformer_id, action, cost, risk_before, risk_removed` |
+| `fact_plan` | one run × one chosen action | `run_id, transformer_id, action_key, action, cost, risk_before, risk_removed` |
 
-`run_log`, `fact_risk`, `fact_plan` are **written by C's code** (via `src/plan.py` / `src/model.py`),
-table definitions created by B. Storing every run lets us show *what changed* after the late drop.
+`dim_run`, `fact_risk`, `fact_plan` rows are **written by C's code** (via `src/plan.py` / `src/model.py`); B creates
+the empty tables and fills `dim_action`. Storing every run lets us show *what changed* after the late drop.
+
+**Shared (conformed) dimensions: one dimension serves several fact tables.** This is what we told the panel:
+
+| Fact table ↓ / Dimension → | `dim_transformer` | `dim_date` | `dim_run` | `dim_action` |
+|---|---|---|---|---|
+| `fact_oil_test` | ✔ | ✔ test date | | |
+| `fact_operation` | ✔ | ✔ month | | |
+| `fact_snapshot` | ✔ | ✔ snapshot date | | |
+| `fact_risk` | ✔ | ✔ as-of date | ✔ | |
+| `fact_plan` | ✔ | ✔ as-of date | ✔ | ✔ |
+
+Customer type → weight (hospital 5, industry 3, urban 2, rural 1) is kept **inside** `dim_transformer` (`type_weight`)
+rather than in its own table: that is the star-schema choice (one join, a little repetition) over a snowflake.
 
 **Snapshot dates:** first day of each quarter, **2024-01-01 → 2026-10-01**.
 **Labelable** only if `snapshot_date + 12 months ≤ 2026-10-01` → snapshots 2024-01-01 … 2025-10-01 have labels;
@@ -211,9 +226,14 @@ def age_plan(risk: pd.DataFrame, costs: pd.DataFrame, budget: float) -> dict:   
 
 1. **Model** gives each transformer `p` (calibrated) and a range `[p_low, p_high]`. Few/old/no tests → wide range.
 2. **Value of each action** (risk removed):
-   - **Replace:** `(p − 0.01) × impact` — a new unit is assumed to have a 1% yearly failure chance.
-   - **Inspect:** `(p_high − p) × impact` — *the hidden risk an inspection could reveal.* Wide range (we know
-     little) → inspection is valuable. Narrow range (we already know) → inspection is worth ~0.
+   - **Replace:** `(p − 0.01) × impact`. A replacement removes all the risk except a new unit's own,
+     which we assume is a 1% yearly failure chance.
+   - **Inspect:** `(p_high − p) × impact`. An inspection removes a **stated fraction** of the risk, and that
+     fraction is **how uncertain we are about the unit**: the hidden risk an inspection could reveal.
+     Wide range (we know little) → inspection is valuable. Narrow range (we already know) → it is worth about 0.
+     *Why not one fixed fraction (e.g. 30%)?* Inspection costs ~1/23 of a replacement, so with a fixed fraction the
+     optimiser inspects almost every unit and replaces almost none. Tying the fraction to uncertainty sends
+     inspections to where they actually tell us something.
    - **Rule:** a transformer with **no usable oil test or a last test > 18 months old cannot be replaced blind** —
      only inspected (don't spend ~350k on something we have not looked at).
 3. **Knapsack** picks at most one action per transformer, maximising total risk removed, total cost ≤ budget
@@ -223,6 +243,45 @@ def age_plan(risk: pd.DataFrame, costs: pd.DataFrame, budget: float) -> dict:   
    **narrows** → replace value rises, inspect value falls → **the next plan replaces it** (if budget allows).
    If the test is clean, `p` goes down and it drops off the list. The late-drop file (new oil tests) demonstrates
    exactly this. **A human engineer approves every plan** (`requires_approval: true`).
+
+### 8b. Assumptions the panel told us to make (12:00 design review)
+
+Costs and budget are **ours to assume**. We assume these values and write them into the README "Assumptions" section:
+
+| Action | small | medium | large |
+|---|---|---|---|
+| replace | 150,000 | 350,000 | 700,000 |
+| inspect | 10,000 | 15,000 | 25,000 |
+
+Annual budget **5,000,000**; late-drop rehearsal budget **4,000,000** (a 20% cut). This is already in `costs_budget.csv` (DATA_SPEC §3.4).
+
+### 8c. Health index: a score for each field (owner C, in `src/model.py`)
+
+We told the panel each field gets its own score. This is that rule. It is used three ways: (1) as the
+**`health_score`** returned by the API, (2) as the **rule-based baseline** the ML model must beat, and (3) as an
+**explanation** ("gas score 30 because acetylene is at condition 3").
+Gas limits follow the **IEEE C57.104 dissolved-gas "condition" levels** (C1 normal → C4 severe). **Verify the
+numbers against the standard before quoting them.**
+
+| Field | Condition 1 (normal) | C2 | C3 | C4 (severe) |
+|---|---|---|---|---|
+| H2 (ppm) | ≤ 100 | 101–700 | 701–1800 | > 1800 |
+| CH4 | ≤ 120 | 121–400 | 401–1000 | > 1000 |
+| C2H2 | ≤ 1 | 2–9 | 10–35 | > 35 |
+| C2H4 | ≤ 50 | 51–100 | 101–200 | > 200 |
+| C2H6 | ≤ 65 | 66–100 | 101–150 | > 150 |
+| CO | ≤ 350 | 351–570 | 571–1400 | > 1400 |
+
+| Score component | Points deducted from 100 |
+|---|---|
+| **Gas score**: worst gas condition | C1 → 0 · C2 → 15 · C3 → 30 · C4 → 40 |
+| **Trend score**: `tdcg_delta` (ppm per month) | ≤ 10 → 0 · 10–30 → 10 · > 30 → 20 |
+| **Load score**: `load_p95_12m` | ≤ 90 → 0 · 90–100 → 10 · > 100 → 20 |
+| **Age score**: `age_years` | ≤ 20 → 0 · 20–30 → 6 · 30–40 → 12 · > 40 → 20 |
+
+`health_score = 100 − (gas + trend + load + age)`, clipped to 0–100. **NULL when there is no usable oil test**, because the
+gas and trend scores cannot be computed, and an untested unit must never look healthy. The model's
+*probability* is still produced for such units (from age, load and `has_oil_test`), flagged low confidence.
 
 ---
 

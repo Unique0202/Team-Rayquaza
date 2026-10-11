@@ -121,7 +121,8 @@ All gases: **strictly positive** (floor at 0.5), 1 decimal, unit **ppm** (except
 | inspect | medium | 15000 | 5000000 |
 | inspect | large | 25000 | 5000000 |
 
-(`annual_budget` repeats on every row — that is how Annex B lays it out.)
+(`annual_budget` repeats on every row — that is how Annex B lays it out.) **These costs and the budget are our
+assumptions. At the 12:00 design review the panel told us to assume them.** Record that in `DATA_CARD.md`.
 
 ---
 

@@ -47,7 +47,7 @@ the Annex B columns + extras, include one duplicate and one lowercase ID) and bu
    Comment each query with one line saying what it returns.
 2. Gold tables (Contract §5): `dim_transformer` (surrogate key, `impact_weight = type_weight × customers`),
    `dim_date`, `fact_oil_test`, `fact_operation`, **`fact_snapshot`** (features + label for snapshots
-   2024-01-01 … 2026-10-01), plus **empty** `run_log`, `fact_risk`, `fact_plan` for C and A to write into.
+   2024-01-01 … 2026-10-01), plus `dim_action` (from `silver_costs`, surrogate `action_key`) and **empty** `dim_run`, `fact_risk`, `fact_plan` for C and A to write into. Show the panel the **conformed-dimension matrix** (Contract §5): `dim_transformer` and `dim_date` are shared by every fact table.
 3. `tests/test_features.py` (pytest):
    - **Leakage test:** for every `fact_snapshot` row, the latest test date / operation month used is `< snapshot_date`
      (HCL validation check).
@@ -80,7 +80,7 @@ the Annex B columns + extras, include one duplicate and one lowercase ID) and bu
 - **A — Data & Serving:** `data/*.csv` at ~14:15 (spec `docs/DATA_SPEC.md`), then the API calling your
   `build_features()` / `load_csv()`, Streamlit, Docker.
 - **C — Model & Plan:** reads your `fact_snapshot`, trains, writes `models/`; `src/plan.py` writes into your
-  `run_log` / `fact_risk` / `fact_plan`.
+  `dim_run` / `fact_risk` / `fact_plan`.
 
 ## You must be able to explain (Q&A is individual)
 Each medallion layer and why it exists · the grain of `fact_snapshot` and how leakage is prevented · the

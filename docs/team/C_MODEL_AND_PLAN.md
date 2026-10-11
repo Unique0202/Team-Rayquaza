@@ -20,7 +20,9 @@ Explain every ML step to me in plain words — what it does and why — before m
    `risk_score = p × impact`; `risk_low/high = p_low/high × impact`.
 2. `make_plan(risk, costs, budget)`: per transformer three options — none / inspect / replace.
    - replace value = `(p − 0.01) × impact`, cost from `costs` by `rating_class`
-   - inspect value = `(p_high − p) × impact`
+   - inspect value = `(p_high − p) × impact`: the "stated fraction" an inspection removes is the unit's
+     uncertainty (Contract §8 explains why not a fixed %)
+   - costs and budget are **assumed** (Contract §8b); read them from `silver_costs` / `silver_budget`, never hard-code
    - **no usable oil test, or last test > 18 months → replace not allowed** (inspect only)
    - **multiple-choice 0/1 knapsack by dynamic programming**, costs in units of 5,000; at most one action per unit;
      total cost ≤ budget. Each chosen action gets a one-line `rationale` built from the numbers.
@@ -44,9 +46,9 @@ columns (random values, ~5% positives) so your code runs end to end. **Delete th
    **and** a random 20% of transformers (seed 42) that never appear in training. Touched **once**, at the end.
 2. **Validation on the rest:** grouped by transformer (`GroupKFold`) **and** time-aware (train folds use earlier
    snapshots than their validation fold), **repeated 5×** with different seeds → mean ± range for every metric.
-3. **Baselines:** (a) age-only logistic regression; (b) rule-based health index (points for high `c2h2_last`,
-   rising `tdcg_delta`, `load_p95_12m > 90`, old age) — scaled 0–100 this is also our **`health_score`**
-   (NULL when no oil test).
+3. **Baselines:** (a) age-only logistic regression; (b) the **rule-based health index: a score for each field,
+   exactly as Contract §8c** (gas condition score + trend + load + age, deducted from 100). The same function gives
+   the API's **`health_score`** (NULL when there is no usable oil test) and the per-field explanation.
 4. **Models × missing-data methods** (HCL R5 — compare at least 3): logistic regression with (i) median
    imputation, (ii) median + missing-indicator (`SimpleImputer(add_indicator=True)`); and
    `HistGradientBoostingClassifier` with (iii) native NaN handling. **All preprocessing inside a sklearn `Pipeline`**
@@ -84,7 +86,7 @@ fit imputation/scaling outside the pipeline. Each of these is a **disqualificati
 - **A — Data & Serving:** the data (~14:15), then the API that calls your `score()`, `model_info()`,
   `compute_risk()`, `make_plan()`, `age_plan()`.
 - **B (Unique) — Architecture:** `fact_snapshot` (~15:00), `build_features()` (the same function the API uses
-  to score — never re-compute features yourself), and the `run_log` / `fact_risk` / `fact_plan` tables you write into.
+  to score — never re-compute features yourself), and the `dim_run` / `fact_risk` / `fact_plan` tables you write into.
 
 ## You must be able to explain (Q&A is individual)
 Why grouped *and* time-aware validation · what PR-AUC and Brier measure and why not accuracy · why Platt over

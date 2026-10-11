@@ -56,8 +56,9 @@ Run locally: `uvicorn src.api:app --reload` → open `http://127.0.0.1:8000/docs
    - **Transformer page:** pick an ID → probability + range, health score, top drivers, its oil-test history chart.
    - **Plan page:** budget input → chosen actions, total cost, risk removed, vs the age-based plan.
    The UI calls the API over HTTP (`API_URL` env var, default `http://api:8000` in Docker).
-3. `requirements.txt` (pin versions from `pip show`): pandas, numpy, scikit-learn, scipy, fastapi, uvicorn,
-   pydantic, joblib, streamlit, python-multipart, pytest, httpx.
+3. `requirements.txt` (pin versions from `pip show`): the exact list in Contract §2 rule 6 (pandas, numpy,
+   sqlalchemy, scikit-learn, scipy, joblib, matplotlib, fastapi, uvicorn, pydantic, python-multipart, streamlit,
+   requests, pytest, httpx). That is the list we gave the panel, so nothing more and nothing less.
 4. `Dockerfile` (python:3.13-slim, `pip install -r requirements.txt`, copy repo) and `docker-compose.yml` with two
    services: `api` (`uvicorn src.api:app --host 0.0.0.0 --port 8000`, runs `python -m src.pipeline` first) and
    `ui` (`streamlit run ui/app.py --server.port 8501`). **Build the image early (by 15:15)** — `pip install`

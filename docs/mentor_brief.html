@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Design Brief</title>
 <style>
-  @page { size: A4; margin: 10mm 12mm; }
+  @page { size: A4; margin: 9mm 11mm; }
   :root { --ink: #1a1a1a; --muted: #555; --line: #cfcfcf; --soft: #f4f1ec;
           --bronze: #a0632a; --silver: #6f7780; --gold: #b08a1e; --accent: #8a1c1c; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #fff; color: var(--ink); font: 9pt/1.31 "Segoe UI", Arial, sans-serif; }
+  body { margin: 0; background: #fff; color: var(--ink); font: 8.8pt/1.28 "Segoe UI", Arial, sans-serif; }
   .page { max-width: 186mm; margin: 0 auto; padding: 2mm 0; }
   h1 { font-size: 15pt; margin: 0; }
   .sub { color: var(--muted); font-size: 8.6pt; margin: .8mm 0 2mm; }
@@ -20,11 +20,11 @@
   p { margin: 0 0 1.2mm; }
   ul, ol { margin: 0 0 1.2mm; padding-left: 4.8mm; }
   li { margin: 0 0 .5mm; }
-  .say { background: var(--soft); border-left: 3px solid var(--accent); padding: 1.2mm 2.4mm; margin: 0 0 1.6mm;
+  .say { background: var(--soft); border-left: 3px solid var(--accent); padding: 1mm 2.2mm; margin: 0 0 1.2mm;
          font-size: 9pt; break-inside: avoid; }
   .say b:first-child { color: var(--accent); }
-  table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: .4mm 0 1.6mm; }
-  th, td { text-align: left; vertical-align: top; padding: .75mm 1.4mm; border-bottom: 1px solid var(--line); }
+  table { width: 100%; border-collapse: collapse; font-size: 8.2pt; margin: .3mm 0 1.3mm; }
+  th, td { text-align: left; vertical-align: top; padding: .6mm 1.3mm; border-bottom: 1px solid var(--line); }
   th { font-size: 8.1pt; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); border-bottom: 1.3px solid var(--ink); }
   tr { break-inside: avoid; }
   td.k { font-weight: 700; white-space: nowrap; }
@@ -97,10 +97,12 @@ checks it, <b>gold</b> shapes it for analysis. Then the model, the plan and the 
           correct gas <b>unit jumps</b> (a reading logged in ppb instead of ppm is 1000× too high), set proper types. Gaps stay <b>empty and flagged</b>, never silently filled.</td>
       <td>The <b>one place</b> data quality is enforced. Everything after silver can trust the data. Bad data fails loudly here instead of quietly corrupting the model.</td></tr>
   <tr class="g"><td class="k">Gold</td>
-      <td>A <b>star schema</b>: <code>dim_transformer</code> (who it serves, customers, impact weight, region, size class) · <code>dim_date</code> (calendar) ·
-          <code>fact_oil_test</code> (one row per test) · <code>fact_operation</code> (one row per month of loading and temperature) ·
-          <b><code>fact_snapshot</code></b>, the table the model learns from (see the grain below).</td>
-      <td>Shaped for <b>reading</b>, not storing. Fewer joins, simpler queries. The snapshot table is the single, leakage-safe input for the model <i>and</i> the API.</td></tr>
+      <td>A <b>star schema</b> with <b>4 shared dimensions</b>: <code>dim_transformer</code> (who it serves, customers, impact weight, region, size class) ·
+          <code>dim_date</code> (calendar) · <code>dim_run</code> (each scoring / planning run) · <code>dim_action</code> (replace / inspect cost per size class).
+          <b>5 fact tables</b>: <code>fact_oil_test</code> (one row per test) · <code>fact_operation</code> (one row per month) ·
+          <b><code>fact_snapshot</code></b> (what the model learns from, see the grain below) · <code>fact_risk</code> (scores per run) · <code>fact_plan</code> (chosen actions per run).</td>
+      <td>Shaped for <b>reading</b>, not storing. The dimensions are <b>conformed</b>: <code>dim_transformer</code> and <code>dim_date</code> serve every fact table, so all
+          facts can be analysed the same way. Storing every run lets us show what changed after new data.</td></tr>
 </table>
 <div class="grain"><b>Grain of the core table:</b> one row of <code>fact_snapshot</code> = <b>one transformer at one quarterly snapshot date</b>.
 Picture standing on 1 Jan 2025 and asking: <i>"Using only what we knew that day, will this transformer fail in the next 12 months?"</i>
@@ -142,7 +144,8 @@ We keep it simple, test it honestly, and make sure its probabilities can be trus
 </ul>
 <h3>What we train</h3>
 <ul>
-  <li><b>Two simple baselines</b> to beat: an <b>age-only</b> rule ("older = riskier") and a hand-written <b>health index</b> from the gas readings.</li>
+  <li><b>Two simple baselines</b> to beat: an <b>age-only</b> rule ("older = riskier") and a <b>health index</b> that gives <b>each field its own score</b>
+      (gas condition per IEEE C57.104 levels, gas trend, peak load, age), deducted from 100. It is also our health score.</li>
   <li><b>Logistic regression</b>: each input gets a weight, and the weighted sum becomes a probability. Fully readable. Our expected winner, because there are few failures to learn from.</li>
   <li><b>Gradient boosting</b> (many small decision trees) for comparison. It is kept only if it clearly beats the simpler model.</li>
   <li>We compare <b>three ways of handling missing readings</b>, as the guide asks, and pick the best by the numbers.</li>
@@ -176,8 +179,10 @@ TR-0117 serves a rural area with 2,000 customers: impact 2,000, failure chance 2
 TR-0102 comes first even though TR-0117 is more likely to fail.</div>
 <ul>
   <li><b>Replace</b> when risk is high <i>and</i> we know the unit well (recent oil tests). A new unit removes almost all of its risk.</li>
-  <li><b>Inspect</b> when we know little (no test, old test, wide range). Inspection is cheap, and its value is the hidden risk it could reveal.
-      <b>We never spend on a blind replacement:</b> an untested unit is inspected first.</li>
+  <li><b>Inspect</b> when we know little (no test, old test, wide range). An inspection removes a <b>stated fraction</b> of the risk, and that fraction is
+      <b>how uncertain we are</b> about the unit (the hidden risk it could reveal). A fixed percentage would make the optimiser inspect almost everything,
+      because inspection is ~23× cheaper. <b>We never spend on a blind replacement:</b> an untested unit is inspected first.</li>
+  <li><b>Costs and budget are assumptions</b>, as the panel advised. Replace 150k / 350k / 700k and inspect 10k / 15k / 25k (small / medium / large); budget 5 million.</li>
   <li><b>Choosing within the budget</b> is a classic <b>knapsack</b> problem: each action has a cost and a value (risk removed), and we pick the best
       combination that fits. Each transformer gets at most one action.</li>
   <li>We compare against an <b>age-based plan</b> (replace the oldest until the money runs out) and show how much more risk our plan removes.</li>
@@ -223,18 +228,30 @@ it drops off the list. The 13:45 late data drop (new oil tests) shows exactly th
   <tr><td class="k">Simple model first</td><td>complex model by default</td><td>With few failures, complex models memorise noise. A simple model must be beaten before anything replaces it.</td></tr>
   <tr><td class="k">Full refresh</td><td>incremental loads</td><td>About 15k rows rebuild in seconds; incremental would need a watermark and adds failure modes.</td></tr>
   <tr><td class="k">SQLite</td><td>PostgreSQL server</td><td>No server to fail on venue wifi; window functions cover our queries; fine at this size.</td></tr>
-  <tr><td class="k">Inspect before replacing</td><td>replace on prediction alone</td><td>A replacement is ~25× the cost of an inspection; never spend it on a unit we have not looked at.</td></tr>
+  <tr><td class="k">Inspect before replacing</td><td>replace on prediction alone</td><td>A replacement is ~23× the cost of an inspection; never spend it on a unit we have not looked at.</td></tr>
 </table>
 
 <!-- 9 -->
-<h2><span class="n">9</span>Who builds what</h2>
+<h2><span class="n">9</span>Libraries we use, by job</h2>
+<table class="keep">
+  <tr><th style="width:17%">Job</th><th style="width:31%">Library</th><th>Used for</th></tr>
+  <tr><td class="k">Data generation</td><td>numpy, pandas</td><td>seeded synthetic fleet, edge cases, data card</td></tr>
+  <tr><td class="k">Storage + pipeline</td><td>SQLite, SQLAlchemy, pandas</td><td>bronze/silver/gold tables, transactions, window-function SQL</td></tr>
+  <tr><td class="k">Model training</td><td>scikit-learn, joblib</td><td>logistic regression, gradient boosting, imputation, validation, calibration, metrics; joblib saves the model</td></tr>
+  <tr><td class="k">Budget optimiser</td><td>plain Python (dynamic programming)</td><td>knapsack, explainable line by line; no solver library needed</td></tr>
+  <tr><td class="k">API</td><td>FastAPI, Uvicorn, Pydantic v2, python-multipart</td><td>the HCL endpoint contract, request validation, CSV upload</td></tr>
+  <tr><td class="k">UI + charts</td><td>Streamlit, requests, matplotlib</td><td>ranking, transformer and plan pages; reliability chart</td></tr>
+  <tr><td class="k">Testing + packaging</td><td>pytest, httpx; Docker + compose</td><td>tests for key functions; one-command start</td></tr>
+</table>
+
+<!-- 10 -->
+<h2><span class="n">10</span>Who builds what (one shared written contract, built in parallel)</h2>
 <table class="keep">
   <tr><th style="width:24%">Member</th><th>Owns</th></tr>
   <tr><td class="k">A: Data &amp; Serving</td><td>synthetic data generator and data card; FastAPI endpoints; Streamlit UI; Docker</td></tr>
   <tr><td class="k">B: Architecture (Unique)</td><td>bronze → silver → gold, validation, the shared feature function (used by training <i>and</i> the API), loader, README</td></tr>
   <tr><td class="k">C: Model &amp; Plan</td><td>baselines, models, honest testing, calibration, explanations; risk and the knapsack plan; evaluation report</td></tr>
 </table>
-<p style="font-size:8.5pt;color:var(--muted)">All three build against one written contract (every table, column and function agreed up front), so work runs in parallel and joins cleanly.</p>
 
 </div>
 </body>
