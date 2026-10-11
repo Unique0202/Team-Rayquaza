@@ -6,7 +6,7 @@ Transformer Fleet Health - medallion pipeline (Member B).
 
     bronze : every CSV exactly as received (+ _ingested_at, _source)
     silver : cleaned, typed, one row per business key, validated
-    gold   : star schema + fact_snapshot (step 2)
+    gold   : star schema (4 shared dimensions, 5 facts) incl. fact_snapshot
 
 Every run rebuilds every table from the files on disk, so running it twice gives identical tables.
 """
@@ -18,7 +18,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
+
+from src.features import FEATURE_COLUMNS, build_features, build_labels
+from src.plan import TYPE_WEIGHTS   # HCL Annex A weights, kept in one place (C's file)
 
 # ----------------------------------------------------------------------------
 # CONFIG
@@ -48,6 +51,22 @@ CUSTOMER_TYPES = {"hospital", "industry", "urban", "rural"}
 DEFAULT_RATING_CLASS = "medium"   # judges' files have no rating_class (it is our extra column)
 UNIT_JUMP_RATIO = 200             # a test >= 200x the unit's other tests was logged in ppb, not ppm
 IMPLAUSIBLE_TOTAL_PPM = 50_000    # single-test units have no history to compare; no real fault gets near this
+
+# The grain of fact_snapshot: the first day of every quarter. 2026-10-01 is "now" (scored, not labelled).
+SNAPSHOT_DATES = [d.strftime("%Y-%m-%d") for d in pd.date_range("2024-01-01", "2026-10-01", freq="QS")]
+
+# Run history is NOT rebuilt from source files: it records every scoring / planning run, so a rebuild
+# after new data must keep it - that is how we show what changed. Created once, appended to by the API.
+RUN_HISTORY_DDL = [
+    """CREATE TABLE IF NOT EXISTS dim_run (
+           run_id TEXT PRIMARY KEY, created_at TEXT, kind TEXT, as_of TEXT, budget REAL, model_version TEXT)""",
+    """CREATE TABLE IF NOT EXISTS fact_risk (
+           run_id TEXT, transformer_id TEXT, failure_prob_12m REAL, prob_low REAL, prob_high REAL, status TEXT,
+           health_score REAL, impact_weight REAL, risk_score REAL, risk_low REAL, risk_high REAL, model_version TEXT)""",
+    """CREATE TABLE IF NOT EXISTS fact_plan (
+           run_id TEXT, transformer_id TEXT, action_key INTEGER, action TEXT, cost REAL,
+           risk_before REAL, risk_removed REAL)""",
+]
 
 
 def get_connection():
@@ -293,6 +312,68 @@ def validate(silver: dict, bronze: dict, fixes: dict) -> None:
 
 
 # ----------------------------------------------------------------------------
+# GOLD - star schema: shared dimensions + fact tables, shaped for reading
+# ----------------------------------------------------------------------------
+def to_date_key(dates: pd.Series) -> pd.Series:
+    """'2025-01-01' -> 20250101: the integer key into dim_date."""
+    return pd.to_datetime(dates).dt.strftime("%Y%m%d").astype(int)
+
+
+def build_gold(silver: dict) -> dict:
+    """Build the dimensions and facts. Silver must already be written: fact_snapshot is made by
+    build_features(), the same function the API uses, and it reads the silver tables."""
+    # dim_transformer: one row per transformer. transformer_key is our own stable integer (a surrogate
+    # key) - business IDs arrive messy. Customer-type weight lives here, not in its own table (star, not snowflake).
+    dim_transformer = silver["silver_transformer"].sort_values("transformer_id").reset_index(drop=True)
+    dim_transformer.insert(0, "transformer_key", range(1, len(dim_transformer) + 1))
+    dim_transformer["type_weight"] = dim_transformer["customer_type"].map(TYPE_WEIGHTS)
+    dim_transformer["impact_weight"] = dim_transformer["type_weight"] * dim_transformer["customers"]
+    keys = dim_transformer[["transformer_id", "transformer_key"]]
+
+    # dim_date: a real calendar, one row per day from the first record to the end of the last snapshot's year
+    first_day = min(silver["silver_operation"]["month"].min(), silver["silver_oil_test"]["test_date"].min())
+    days = pd.date_range(first_day, f"{SNAPSHOT_DATES[-1][:4]}-12-31", freq="D")
+    dim_date = pd.DataFrame({"date_key": to_date_key(pd.Series(days)), "date": days.strftime("%Y-%m-%d"),
+                             "year": days.year, "quarter": days.quarter, "month": days.month})
+    dim_date["is_snapshot_date"] = dim_date["date"].isin(SNAPSHOT_DATES).astype(int)
+
+    # dim_action: replace / inspect cost per size class (our assumed costs)
+    dim_action = silver["silver_costs"].sort_values(["action", "rating_class"]).reset_index(drop=True)
+    dim_action.insert(0, "action_key", range(1, len(dim_action) + 1))
+
+    # Facts swap the business ID for the surrogate key. validate="many_to_one" makes pandas raise if a
+    # join would duplicate rows - the most common silent bug in a star schema.
+    oil = silver["silver_oil_test"].merge(keys, on="transformer_id", how="left", validate="many_to_one")
+    oil["date_key"] = to_date_key(oil["test_date"])
+    oil["tdcg"] = oil[GAS_COLUMNS].sum(axis=1, min_count=len(GAS_COLUMNS))   # total combustible gas
+    fact_oil_test = oil[["transformer_key", "date_key", *GAS_COLUMNS, "tdcg", "unit_fixed"]]
+
+    op = silver["silver_operation"].merge(keys, on="transformer_id", how="left", validate="many_to_one")
+    op["date_key"] = to_date_key(op["month"])
+    op["is_failure"] = (op["event"] == "failure").astype(int)
+    op["is_repair"] = (op["event"] == "repair").astype(int)
+    fact_operation = op[["transformer_key", "date_key", "load_pct", "top_oil_temp_c", "age_years",
+                         "is_failure", "is_repair"]]
+
+    # fact_snapshot - GRAIN: one transformer at one quarterly snapshot date, inputs only from before it
+    with get_connection() as conn:
+        features = build_features(conn, SNAPSHOT_DATES)
+        labels = build_labels(conn, SNAPSHOT_DATES)
+    snap = (features.merge(labels, on=["transformer_id", "snapshot_date"], how="left", validate="one_to_one")
+                    .merge(keys, on="transformer_id", how="left", validate="many_to_one"))
+    snap["date_key"] = to_date_key(snap["snapshot_date"])
+    fact_snapshot = snap[["transformer_key", "transformer_id", "snapshot_date", "date_key",
+                          *FEATURE_COLUMNS, "failed_next_12m"]]
+
+    assert len(fact_snapshot) == len(dim_transformer) * len(SNAPSHOT_DATES), "fact_snapshot is not at its grain"
+    for name, fact in [("fact_oil_test", fact_oil_test), ("fact_operation", fact_operation), ("fact_snapshot", fact_snapshot)]:
+        assert fact["transformer_key"].notna().all(), f"{name}: a row has no matching transformer"
+
+    return {"dim_transformer": dim_transformer, "dim_date": dim_date, "dim_action": dim_action,
+            "fact_oil_test": fact_oil_test, "fact_operation": fact_operation, "fact_snapshot": fact_snapshot}
+
+
+# ----------------------------------------------------------------------------
 def run_pipeline() -> dict:
     """Rebuild the whole warehouse from the files on disk. Returns row counts per table."""
     print(f"\nPipeline: {DATA_DIR} -> bronze -> silver -> gold\n")
@@ -303,8 +384,20 @@ def run_pipeline() -> dict:
     for name, df in silver.items():
         print(f"  silver       : {len(df):>6,} rows -> {name}")
 
+    gold = build_gold(silver)
+    write_tables(gold)
+    with engine.begin() as conn:
+        for ddl in RUN_HISTORY_DDL:
+            conn.execute(text(ddl))
+    for name, df in gold.items():
+        print(f"  gold         : {len(df):>6,} rows -> {name}")
+    labelled = gold["fact_snapshot"]["failed_next_12m"].notna()
+    print(f"  gold         : {int(labelled.sum()):,} labelled snapshot rows, "
+          f"{int(gold['fact_snapshot']['failed_next_12m'].sum())} positives (failed within 12 months)")
+
     counts = {f"bronze_{table}": len(df) for table, df in bronze.items()}
     counts.update({name: len(df) for name, df in silver.items()})
+    counts.update({name: len(df) for name, df in gold.items()})
     return counts
 
 

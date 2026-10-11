@@ -1,11 +1,11 @@
 # Member A — Data & Serving
 
-**You own:** the synthetic data, then the API, the UI and Docker.
+**You own:** the synthetic data, then the API and Docker. (**The Streamlit UI moved to B at 14:55.**)
 **Hand this whole PDF to your Claude session and say:** *"Read this document and `docs/DATA_SPEC.md`, then work
 through Part 1 step by step. Explain each step to me in 2–3 plain lines before moving on."*
 
 > The **Shared Contract** is attached at the end of this PDF (also in `docs/team/SHARED_CONTRACT.md`).
-> Your files: `scripts/generate_data.py`, `data/**`, `src/api.py`, `ui/app.py`, `tests/test_api.py`,
+> Your files: `scripts/generate_data.py`, `data/**`, `src/api.py`, `tests/test_api.py`,
 > `Dockerfile`, `docker-compose.yml`, `requirements.txt`. **Do not edit anyone else's files.**
 
 ---
@@ -51,11 +51,7 @@ Run locally: `uvicorn src.api:app --reload` → open `http://127.0.0.1:8000/docs
 1. Replace stubs with real calls (Contract §9): `build_features` → `score` → `compute_risk`; `make_plan` + `age_plan`;
    `load_csv`; `model_info`. Write `fact_risk` / `fact_plan` rows via C's functions if they provide a helper,
    otherwise ask C.
-2. `ui/app.py` (Streamlit, keep it plain — usability only is scored). Three pages via a sidebar radio:
-   - **Risk ranking:** table of transformers sorted by `risk_score`, with status and a low-confidence marker.
-   - **Transformer page:** pick an ID → probability + range, health score, top drivers, its oil-test history chart.
-   - **Plan page:** budget input → chosen actions, total cost, risk removed, vs the age-based plan.
-   The UI calls the API over HTTP (`API_URL` env var, default `http://api:8000` in Docker).
+2. **UI: owned by B now.** Your `docker-compose.yml` just starts B's `ui/app.py` (`streamlit run ui/app.py --server.port 8501`).
 3. `requirements.txt` (pin versions from `pip show`): the exact list in Contract §2 rule 6 (pandas, numpy,
    sqlalchemy, scikit-learn, scipy, joblib, matplotlib, fastapi, uvicorn, pydantic, python-multipart, streamlit,
    requests, pytest, httpx). That is the list we gave the panel, so nothing more and nothing less.

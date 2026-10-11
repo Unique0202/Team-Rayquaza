@@ -52,7 +52,7 @@ worse than the model predicted, its risk should go up. → See §8 for how that 
 | `src/model.py` | **C** | baselines, models, validation, calibration, intervals, `score()` |
 | `src/plan.py` | **C** | risk, knapsack plan, age-based plan |
 | `src/api.py` | **A** | FastAPI app — thin, calls B's and C's functions |
-| `ui/app.py` | **A** | Streamlit UI (3 pages) |
+| `ui/app.py` | **B** (moved from A at 14:55) | Streamlit UI, 5 screens; calls the same Python functions as the API |
 | `tests/test_features.py` | **B** | leakage + validation tests |
 | `tests/test_plan.py`, `tests/test_model.py` | **C** | budget never exceeded, one action per unit, … |
 | `tests/test_api.py` | **A** | endpoints respond in the contract shape |
@@ -120,7 +120,9 @@ Cleaning rules: IDs `strip().upper()`; exact duplicates dropped; duplicate keys 
 | `fact_plan` | one run × one chosen action | `run_id, transformer_id, action_key, action, cost, risk_before, risk_removed` |
 
 `dim_run`, `fact_risk`, `fact_plan` rows are **written by C's code** (via `src/plan.py` / `src/model.py`); B creates
-the empty tables and fills `dim_action`. Storing every run lets us show *what changed* after the late drop.
+the empty tables and fills `dim_action`. **Built (14:55):** the run-history tables are created once
+(`CREATE TABLE IF NOT EXISTS`) and are **never wiped by a pipeline rebuild**, so runs before and after new data can be compared.
+`fact_snapshot` also carries `date_key`, and `fact_oil_test` carries `unit_fixed`. Storing every run lets us show *what changed* after the late drop.
 
 **Shared (conformed) dimensions: one dimension serves several fact tables.** This is what we told the panel:
 
@@ -289,7 +291,7 @@ gas and trend scores cannot be computed, and an untested unit must never look he
 
 | Endpoint | Calls |
 |---|---|
-| `POST /predict` (optional `transformer_ids`, `as_of`) | `build_features(conn, [as_of or "2026-10-01"])` → `score()` → `compute_risk()`; writes `fact_risk` |
+| `POST /predict` (optional `transformer_ids`, `as_of`) | `build_features(conn, [as_of or TODAY])` → `score()` → `compute_risk()`; writes `fact_risk`. **Default `as_of` = today (2026-10-11), NOT 2026-10-01**: the late-drop oil tests are dated Oct 1–10 and a 2026-10-01 snapshot would silently ignore them. |
 | `POST /plan` (`budget`, optional costs) | latest `fact_risk` → `make_plan()` + `age_plan()`; writes `fact_plan` |
 | `POST /ingest` (multipart CSV + `{"table": ...}`) | `load_csv()` |
 | `GET /model/info` | `model_info()` |
@@ -310,7 +312,7 @@ Response shapes: HCL guide §6.1 (`predictions[]` with `failure_prob_12m`, `prob
 | **14:15 sync** | **push `data/`** | pull data, run on real files | — |
 | 14:15–15:00 | `api.py` with stub responses in contract shape | gold + `features.py` + labels + leakage test | `model.py` on a stand-in `fact_snapshot` |
 | **15:00 sync** | — | **push `fact_snapshot` code** | pull, train on real data |
-| 15:00–15:40 | wire API to real functions; Streamlit; Dockerfile | `loader.py`, validation output, README | evaluation, calibration, model card, experiment log |
+| 15:00–15:40 | wire API to real functions; Dockerfile + compose (starts B's `ui/app.py`) | `loader.py`, **Streamlit UI**, README | evaluation, calibration, model card, experiment log |
 | **15:40 sync** | `docker compose up` works | README sections merged | **push `models/` + `reports/`** |
 | 15:40–16:10 | rehearse demo end-to-end, fix, tag `final` | | |
 
