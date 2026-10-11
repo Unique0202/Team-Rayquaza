@@ -1,0 +1,20 @@
+Validation run 2026-10-11T14:35:48 on E:\Team-Rayquaza\data
+
+Cleaning applied before the checks:
+  - duplicate assets removed: 5
+  - duplicate operation rows removed: 6
+  - duplicate oil tests removed: 0
+  - oil tests converted ppb -> ppm: 3
+  - transformers with rating_class assumed: 0
+  - missing load / temperature values (left as NULL): 282
+
+Checks:
+  [PASS] every transformer in operation is in the asset list  (unknown: [])
+  [PASS] every transformer in oil_tests is in the asset list  (unknown: [])
+  [PASS] gas results are positive  (0 values <= 0)
+  [PASS] gas results are in ppm (no unit jumps left)  (0 still look like ppb)
+  [PASS] test dates are not in the future  (0 future tests)
+  [PASS] operation months are not in the future  (0 future months)
+  [PASS] every transformer has a valid customer type  (0 missing/invalid)
+  [PASS] costs and budget are positive numbers  (budget = 5,000,000)
+  [PASS] row counts match the data card  (all match)
