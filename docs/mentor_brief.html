@@ -3,103 +3,136 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mentor Brief</title>
+<title>Design Brief</title>
 <style>
-  @page { size: A4; margin: 11mm 12mm; }
-  :root { --ink: #1a1a1a; --muted: #555; --line: #c9c9c9; --accent: #8a1c1c; --soft: #f4f1ec; }
+  @page { size: A4; margin: 9mm 12mm; }
+  :root { --ink: #1a1a1a; --muted: #555; --line: #c9c9c9; --soft: #f4f1ec;
+          --bronze: #a0632a; --silver: #6f7780; --gold: #b08a1e; }
   * { box-sizing: border-box; }
   body { margin: 0; background: #fff; color: var(--ink);
-         font: 9.6pt/1.32 "Segoe UI", Arial, sans-serif; }
-  .page { max-width: 186mm; margin: 0 auto; padding: 4mm 0; }
+         font: 9pt/1.28 "Segoe UI", Arial, sans-serif; }
+  .page { max-width: 186mm; margin: 0 auto; padding: 3mm 0; }
   h1 { font-size: 14pt; margin: 0; }
-  .sub { color: var(--muted); font-size: 8.8pt; margin: 1mm 0 2.5mm; }
-  h2 { font-size: 10pt; margin: 2.6mm 0 1.2mm; padding-bottom: .6mm;
+  .sub { color: var(--muted); font-size: 8.6pt; margin: .8mm 0 2mm; }
+  h2 { font-size: 9.8pt; margin: 2.4mm 0 1.2mm; padding-bottom: .6mm;
        border-bottom: 1.2px solid var(--ink); text-transform: uppercase; letter-spacing: .04em; }
-  p { margin: 0 0 1.2mm; }
+  p { margin: 0 0 1mm; }
   ul { margin: 0; padding-left: 4.5mm; }
-  li { margin: 0 0 .5mm; }
-  .flow { background: var(--soft); padding: 1.8mm 2.5mm; border-radius: 1.5mm;
-          font-size: 9pt; line-height: 1.5; }
-  .flow b { white-space: nowrap; }
+  li { margin: 0 0 .4mm; }
+  .flow { display: flex; align-items: stretch; gap: 1.2mm; margin: .5mm 0 1.6mm; font-size: 8.4pt; }
+  .flow div { flex: 1; text-align: center; padding: 1.3mm .8mm; border-radius: 1.2mm;
+              border: 1px solid var(--line); background: var(--soft); }
+  .flow .arrow { flex: 0 0 auto; border: 0; background: none; padding: 1.3mm 0; color: var(--muted); }
+  .flow b { display: block; font-size: 8.8pt; }
+  .b { border-left: 3px solid var(--bronze) !important; }
+  .s { border-left: 3px solid var(--silver) !important; }
+  .g { border-left: 3px solid var(--gold) !important; }
+  table { width: 100%; border-collapse: collapse; font-size: 8.3pt; }
+  th, td { text-align: left; vertical-align: top; padding: .8mm 1.4mm; border-bottom: 1px solid var(--line); }
+  th { font-size: 8.2pt; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); border-bottom: 1.2px solid var(--ink); }
+  td:first-child { font-weight: 700; white-space: nowrap; }
+  tr.b td:first-child { color: var(--bronze); }
+  tr.s td:first-child { color: var(--silver); }
+  tr.g td:first-child { color: var(--gold); }
+  code { font: 8.1pt Consolas, monospace; background: var(--soft); padding: 0 .6mm; border-radius: .6mm; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 5mm; }
-  ol.q { margin: 0; padding-left: 5mm; }
-  ol.q li { margin: 0 0 1mm; break-inside: avoid; }
-  .why { color: var(--muted); font-size: 8.6pt; }
-  .ans { display: block; border-bottom: 1px dotted var(--muted); height: 5.2mm; margin-top: .4mm; }
-  .tag { color: var(--accent); font-weight: 700; }
-  .foot { margin-top: 2mm; font-size: 8.4pt; color: var(--muted); }
-  @media (max-width: 600px) { .page { padding: 4mm 16px; } .cols { grid-template-columns: 1fr; } }
+  .box { background: var(--soft); border-radius: 1.5mm; padding: 1.6mm 2.4mm; font-size: 8.7pt; }
+  .grain { border: 1.5px solid var(--gold); border-radius: 1.5mm; padding: 1.4mm 2.4mm; margin: 1.4mm 0 0; font-size: 9pt; }
+  ol { margin: 0; padding-left: 4.8mm; }
+  ol li { margin: 0 0 .5mm; }
+  @media (max-width: 600px) { .page { padding: 4mm 16px; } .cols { grid-template-columns: 1fr; } .flow { flex-wrap: wrap; } }
 </style>
 </head>
 <body>
 <div class="page">
 
 <h1>Team Rayquaza: Transformer Fleet Health &amp; Replacement Planning</h1>
-<div class="sub">HCLTech Future Ready AI Engineer Hackathon · DS/ML edition · 11 Oct 2026 · mentor brief</div>
+<div class="sub">HCLTech Future Ready AI Engineer Hackathon · DS/ML edition · 11 Oct 2026 · design brief</div>
 
 <h2>What we understood</h2>
 <p>A utility has about 400 transformers and money to fix only a few. We predict each one's <b>chance of failing in the next 12 months</b>,
-calibrated so that "20%" really means about 20%, with an uncertainty range. We compute <b>risk = probability × impact</b>
-(hospital 5, industry 3, urban 2, rural 1, × customers), then choose replace / inspect actions within the budget using a <b>knapsack</b>,
-and show it beats an age-based plan. Units with no oil test are never called "healthy".</p>
+compute <b>risk = probability × impact</b> (hospital 5, industry 3, urban 2, rural 1, × customers served), and choose which to
+<b>replace or inspect within the budget</b>, explaining every choice. A transformer with no oil test is never called "healthy".</p>
 
-<h2>Our plan</h2>
+<h2>Architecture: medallion (raw → cleaned → business-ready)</h2>
 <div class="flow">
-<b>1 Generate data</b> (seeded, edge cases planted, data card) →
-<b>2 Load + validate</b> (HCL checks as asserts) →
-<b>3 Clean</b> (unit jumps, duplicates, gaps) →
-<b>4 Snapshot table</b>: one row = one transformer at one quarterly snapshot, only past data, label = fails in next 12 months →
-<b>5 Features</b> (gas ratios and trends, load avg/peak, hot months, age, months since test, <i>has_oil_test</i>; one function shared by training and the API) →
-<b>6 Baselines</b> (age-only, rule-based health index) →
-<b>7 Models</b>: logistic regression and gradient boosting × <b>3 missing-data methods</b> (median, median + indicator, native) →
-<b>8 Validation</b>: time-aware and grouped by transformer, repeated 5×, CIs; final held-out snapshots used once →
-<b>9 Calibrate</b> (Platt: suits few positives) + bootstrap intervals →
-<b>10 Risk + knapsack plan</b> vs age plan →
-<b>11 Serve</b>: FastAPI (/predict /plan /ingest /model/info /explain /health) + Streamlit + Docker compose, experiment log, model card, tests
+  <div>4 CSVs<b>Source</b>synthetic, seeded</div><div class="arrow">→</div>
+  <div class="b">raw, as-is<b>Bronze</b>never edited</div><div class="arrow">→</div>
+  <div class="s">validated<b>Silver</b>clean, typed, deduped</div><div class="arrow">→</div>
+  <div class="g">modelled<b>Gold</b>star schema + snapshots</div><div class="arrow">→</div>
+  <div>decision<b>Risk + plan</b>model, knapsack</div><div class="arrow">→</div>
+  <div>serve<b>API + UI</b>FastAPI, Streamlit</div>
+</div>
+
+<table>
+  <tr><th style="width:14%">Layer</th><th style="width:47%">What happens (process)</th><th>Why it exists</th></tr>
+  <tr class="b"><td>Bronze</td>
+      <td>Each CSV is loaded <b>exactly as received</b> into <code>bronze_oil_tests</code>, <code>bronze_operation</code>,
+          <code>bronze_customers</code>, <code>bronze_costs</code>, with <code>_ingested_at</code> and <code>_source</code> added.
+          The late data drop (<code>/ingest</code>) also lands here first.</td>
+      <td>The <b>replay tape</b>: if a later step has a bug, we fix it and re-run from bronze without re-fetching anything. It is also the audit trail of what arrived and when.</td></tr>
+  <tr class="s"><td>Silver</td>
+      <td><b>Validate</b> (HCL checks as <code>assert</code>s: no future dates, gases &gt; 0, every unit has a customer type, row counts match the data card) →
+          <b>clean</b>: standardise IDs (<code>"tr-0045 "</code> → <code>TR-0045</code>), remove duplicate assets and rows, fix gas <b>unit jumps</b> (ppb logged as ppm, ×1000),
+          cast types. Gaps stay <b>NULL and flagged</b>, never silently filled.</td>
+      <td><b>One place</b> where data quality is enforced. Every later step can trust silver. Bad data fails loudly here instead of quietly corrupting the model.</td></tr>
+  <tr class="g"><td>Gold</td>
+      <td><b>Star schema:</b> <code>dim_transformer</code> (customer type, customers, impact weight, region, size class) ·
+          <code>dim_date</code> (calendar / quarter) · <code>fact_oil_test</code> (one row per transformer per test) ·
+          <code>fact_operation</code> (one row per transformer per month) ·
+          <b><code>fact_snapshot</code></b>: one row per transformer per quarter, with features built <b>only from data before that date</b>
+          (latest test via <code>ROW_NUMBER()</code>, change between tests via <code>LAG()</code>, 12-month load and temperature aggregates).</td>
+      <td>Shaped for <b>reading</b>, not storing. Dimensions are loaded once and read constantly. The snapshot table is the single, leakage-safe input to the model and the API.</td></tr>
+  <tr><td>Decision</td>
+      <td>Model scores each snapshot → <code>fact_risk</code> (probability, range, impact, risk) → <b>knapsack</b> picks actions within the budget → compared with an age-based plan.</td>
+      <td>Numbers come from code, not from text. Every run is stored, so we can show what changed after the late data drop.</td></tr>
+</table>
+
+<div class="grain"><b>Grain of the core table:</b> one row of <code>fact_snapshot</code> = <b>one transformer at one quarterly snapshot date</b>.
+Features use only data from <i>before</i> that date; the label is "failed in the following 12 months". This is how leakage is prevented by design.</div>
+
+<div class="cols">
+<div>
+<h2>How one run works</h2>
+<ol>
+  <li><code>python src/pipeline.py</code>: one command, one status line per stage.</li>
+  <li>Load → bronze → validate + clean → silver → build gold.</li>
+  <li>Score every transformer → risk → budget plan.</li>
+  <li><b>Re-runnable:</b> silver and gold are rebuilt in full, so running twice gives identical results.</li>
+  <li><b>Atomic:</b> gold is written in one transaction; a failed load rolls back.</li>
+  <li><b>Late drop (13:45):</b> new oil tests + new budget → <code>/ingest</code> → bronze → re-run → show what changed.</li>
+</ol>
+</div>
+<div>
+<h2>Key design decisions</h2>
+<ul>
+  <li><b>Medallion over one script:</b> raw data is kept, so any step can be replayed and audited.</li>
+  <li><b>Star schema over 3NF in gold:</b> fewer joins for reading; we accept some redundancy in dimensions.</li>
+  <li><b>Quarterly snapshots:</b> monthly gives near-duplicate rows (tests every 6–12 months); yearly gives too few.</li>
+  <li><b>Full refresh over incremental:</b> about 15k rows rebuild in seconds; incremental would need a watermark and adds failure modes.</li>
+  <li><b>SQLite:</b> no server, nothing to break on venue wifi; window functions do the as-of joins.</li>
+  <li><b>SCD Type 1</b> on <code>dim_transformer</code>; Type 2 noted as a known limitation.</li>
+</ul>
+</div>
 </div>
 
 <div class="cols">
 <div>
-<h2>Key decisions (so far)</h2>
-<ul>
-  <li><b>Simple first:</b> logistic regression is the expected winner with few failures; boosting has to earn its place.</li>
-  <li><b>scikit-learn only</b>: no extra installs; native NaN support covers missing-data method 3.</li>
-  <li><b>Platt over isotonic</b> calibration: isotonic overfits with ~30–50 positives.</li>
-  <li><b>Missingness is a feature:</b> <i>has_oil_test</i>, because untested may itself mean risk.</li>
-  <li><b>SQLite</b> store; snapshot features from as-of joins (window functions).</li>
-</ul>
+<h2>Model layer: kept simple</h2>
+<div class="box">Compare simple <b>baselines</b> (age-only, a rule-based health score) against <b>logistic regression</b>.
+A more complex model is kept only if it clearly beats them. Probabilities are <b>calibrated</b> so "20%" means about 20%.
+Testing is honest: train on earlier periods, test on later ones and on transformers the model has never seen.</div>
 </div>
 <div>
 <h2>Data: we generate all 4 files</h2>
 <ul>
-  <li>400 transformers, 36 months (Oct 2023 – Sep 2026), ~38% with no oil test.</li>
-  <li>Failures from a documented hazard: age, overload, developing gas fault.</li>
-  <li>All 6 HCL edge cases planted on purpose; IDs in the data card.</li>
-  <li><b>Extra columns:</b> <i>rating_class</i> (customers_served), <i>event</i> = failure / repair (operation).</li>
-  <li>Pipeline must still run on judges' files with <b>only</b> Annex B columns.</li>
+  <li>400 transformers, 36 months (Oct 2023 – Sep 2026), about 38% never oil-tested.</li>
+  <li>Failures follow a documented rule (age, overload, gas fault) plus randomness.</li>
+  <li>All 6 HCL edge cases planted on purpose, listed in the data card.</li>
 </ul>
 </div>
 </div>
 
-<h2>Questions for the mentors <span class="tag">— write answers verbatim</span></h2>
-<ol class="q">
-  <li><b>We are generating all data ourselves.</b> Can failure events be an <b>extra column</b> (<i>event</i>) in operation.csv, and size class an extra column in customers_served.csv? Or do you prefer a separate file?
-      <span class="ans"></span></li>
-  <li>On judging day, will <b>your test CSVs contain only Annex B columns</b>? If <i>rating_class</i> is absent, which cost should a plan use?
-      <span class="ans"></span></li>
-  <li>How are we scored on the <b>hidden outcomes</b>: your data loaded through our loader? Which <b>as_of / snapshot date</b> counts as "now"?
-      <span class="ans"></span></li>
-  <li>What risk does an <b>inspection</b> remove compared with a <b>replacement</b>? <span class="why">(The knapsack needs a value per action. Default: replace removes all of it, inspect a stated fraction.)</span>
-      <span class="ans"></span></li>
-  <li>Budget for <b>/plan</b>: from <i>annual_budget</i> in the file, or the request body? Does the late-drop budget come through <b>/ingest</b>?
-      <span class="ans"></span></li>
-  <li>Is <b>customers_served.csv</b> acceptable as the "asset list" in the validation checks?
-      <span class="ans"></span></li>
-  <li>Which metric matters most on hidden outcomes (PR-AUC / top-10% recall / Brier)? Is judging the <b>30-min slot</b> (§9.1) or <b>5 + 5 min</b> (schedule)?
-      <span class="ans"></span></li>
-</ol>
-
-<div class="foot">Our assumptions where unanswered go into the README's "Assumptions" section and our decision log.</div>
 </div>
 </body>
 </html>
