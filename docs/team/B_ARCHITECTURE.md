@@ -78,7 +78,7 @@ the Annex B columns + extras, include one duplicate and one lowercase ID) and bu
 ## What the others are building
 
 - **A — Data & Serving:** `data/*.csv` at ~14:15 (spec `docs/DATA_SPEC.md`), then the API calling your
-  `build_features()` / `load_csv()`, Streamlit, Docker.
+  `build_features()` / `load_csv()`.
 - **C — Model & Plan:** reads your `fact_snapshot`, trains, writes `models/`; `src/plan.py` writes into your
   `dim_run` / `fact_risk` / `fact_plan`.
 

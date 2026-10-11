@@ -1,12 +1,12 @@
 # Member A — Data & Serving
 
-**You own:** the synthetic data, then the API and Docker. (**The Streamlit UI moved to B at 14:55.**)
+**You own:** the synthetic data, then the API. (**UI moved to B at 14:55. Docker removed at 15:25: panel said optional.**)
 **Hand this whole PDF to your Claude session and say:** *"Read this document and `docs/DATA_SPEC.md`, then work
 through Part 1 step by step. Explain each step to me in 2–3 plain lines before moving on."*
 
 > The **Shared Contract** is attached at the end of this PDF (also in `docs/team/SHARED_CONTRACT.md`).
 > Your files: `scripts/generate_data.py`, `data/**`, `src/api.py`, `tests/test_api.py`,
-> `Dockerfile`, `docker-compose.yml`, `requirements.txt`. **Do not edit anyone else's files.**
+> `requirements.txt`. **Do not edit anyone else's files.**
 
 ---
 

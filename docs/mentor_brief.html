@@ -202,7 +202,7 @@ it drops off the list. The 13:45 late data drop (new oil tests) shows exactly th
   <li><code>python -m src.pipeline</code> runs load → bronze → validate + clean → silver → gold, printing one status line per stage.</li>
   <li><b>Re-runnable:</b> silver and gold are rebuilt in full, so running twice gives identical results.</li>
   <li><b>All-or-nothing writes:</b> gold is written in one transaction; a failure rolls back.</li>
-  <li><code>docker compose up</code> starts the API and the UI.</li>
+  <li>Runs locally: <code>uvicorn src.api:app</code> (API) and <code>streamlit run ui/app.py</code> (UI).</li>
 </ul>
 </div>
 <div>
@@ -241,15 +241,15 @@ it drops off the list. The 13:45 late data drop (new oil tests) shows exactly th
   <tr><td class="k">Budget optimiser</td><td>plain Python (dynamic programming)</td><td>knapsack, explainable line by line; no solver library needed</td></tr>
   <tr><td class="k">API</td><td>FastAPI, Uvicorn, Pydantic v2, python-multipart</td><td>the HCL endpoint contract, request validation, CSV upload</td></tr>
   <tr><td class="k">UI + charts</td><td>Streamlit, requests, matplotlib</td><td>ranking, transformer and plan pages; reliability chart</td></tr>
-  <tr><td class="k">Testing + packaging</td><td>pytest, httpx; Docker + compose</td><td>tests for key functions; one-command start</td></tr>
+  <tr><td class="k">Testing + packaging</td><td>pytest, httpx</td><td>tests for every key function</td></tr>
 </table>
 
 <!-- 10 -->
 <h2><span class="n">10</span>Who builds what (one shared written contract, built in parallel)</h2>
 <table class="keep">
   <tr><th style="width:24%">Member</th><th>Owns</th></tr>
-  <tr><td class="k">A: Data &amp; Serving</td><td>synthetic data generator and data card; FastAPI endpoints; Streamlit UI; Docker</td></tr>
-  <tr><td class="k">B: Architecture (Unique)</td><td>bronze → silver → gold, validation, the shared feature function (used by training <i>and</i> the API), loader, README</td></tr>
+  <tr><td class="k">A: Data &amp; Serving</td><td>synthetic data generator and data card; FastAPI endpoints</td></tr>
+  <tr><td class="k">B: Architecture (Unique)</td><td>bronze → silver → gold, validation, the shared feature function (used by training <i>and</i> the API), loader, Streamlit UI, README</td></tr>
   <tr><td class="k">C: Model &amp; Plan</td><td>baselines, models, honest testing, calibration, explanations; risk and the knapsack plan; evaluation report</td></tr>
 </table>
 

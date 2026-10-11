@@ -39,10 +39,11 @@
 
 > ## 🟠 11 Oct update — the HCL guide is now the plan
 >
-> Problem chosen: **Transformer Fleet Health (DS/ML edition)**. The HCL guide mandates FastAPI, Docker +
-> compose, scikit-learn model training and pytest tests — **these override the "does NOT have" list and
+> Problem chosen: **Transformer Fleet Health (DS/ML edition)**. The HCL guide mandates FastAPI,
+> scikit-learn model training and pytest tests — **these override the "does NOT have" list and
 > the stack in §4 below**. Before coding, read **`docs/team/SHARED_CONTRACT.md`** (tables, columns, function
 > signatures, file ownership) and **your own member brief** in `docs/team/`. Only edit the files your member owns.
+> **Docker was removed at 15:25** (the panel said it is optional): everything runs locally.
 
 One-day campus hackathon. **About four hours of build time.** A panel reviews the result twice and
 **scores each person individually**. Everything below is the plan agreed before coding started.

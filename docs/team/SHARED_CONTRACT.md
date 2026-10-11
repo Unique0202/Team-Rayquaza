@@ -11,8 +11,8 @@
 A utility has ~400 transformers and money to fix only a few. We **predict each transformer's chance of
 failing in the next 12 months** (calibrated, with an uncertainty range), compute **risk = probability ×
 impact** (hospital 5, industry 3, urban 2, rural 1, × customers served), and choose **replace / inspect /
-nothing** within a budget with a **knapsack**, beating an age-based plan. Served through FastAPI + Streamlit +
-Docker. Full HCL guide: `Problem_Statements/Transformer_Fleet_Health_and_Replacement_Planning_Participant_Guide_DS_ML.docx`.
+nothing** within a budget with a **knapsack**, beating an age-based plan. Served through FastAPI + Streamlit, run locally.
+**Docker removed at 15:25: the panel confirmed it is optional; the system runs on our laptops.** Full HCL guide: `Problem_Statements/Transformer_Fleet_Health_and_Replacement_Planning_Participant_Guide_DS_ML.docx`.
 
 **Mentor answer (12:00, recorded):** an inspection tells us how severe the transformer really is; if it is
 worse than the model predicted, its risk should go up. → See §8 for how that drives the plan.
@@ -24,7 +24,7 @@ worse than the model predicted, its risk should go up. → See §8 for how that 
 1. **Never run a git command that writes** (`add`, `commit`, `push`, `pull`, `checkout`, …). Suggest it; the
    human runs it. No `Co-Authored-By` / tool trailers in suggested messages.
 2. **Never write inside `hackathon-kit/`** (read-only reference). Root `CLAUDE.md` applies.
-3. **The HCL guide overrides `CLAUDE.md`'s stack list.** Docker, FastAPI, scikit-learn model training and
+3. **The HCL guide overrides `CLAUDE.md`'s stack list.** FastAPI, scikit-learn model training and
    pytest tests are **required** by HCL — use them.
 4. **Only edit the files your member owns** (§3). Need something from another member's file? Ask the human.
    This is what keeps `git pull` free of conflicts.
@@ -59,7 +59,7 @@ worse than the model predicted, its risk should go up. → See §8 for how that 
 | `models/` | **C** (generated) | `model.joblib`, `model_card.json` |
 | `reports/experiments.csv`, `reports/evaluation.md` | **C** (generated) | experiment log, evaluation report |
 | `reports/validation_output.txt` | **B** (generated) | output of the validation step |
-| `Dockerfile`, `docker-compose.yml`, `requirements.txt` | **A** | packaging |
+| `requirements.txt` | **A** | exact versions we tested with (Docker files removed 15:25) |
 | `README.md` | **B** | graded; A and C send their sections to B |
 | `warehouse.db` | generated | SQLite warehouse — **gitignored**, rebuilt by the pipeline |
 | `NOTES.local.md` | each person, own laptop | private, gitignored |
@@ -312,8 +312,8 @@ Response shapes: HCL guide §6.1 (`predictions[]` with `failure_prob_12m`, `prob
 | **14:15 sync** | **push `data/`** | pull data, run on real files | — |
 | 14:15–15:00 | `api.py` with stub responses in contract shape | gold + `features.py` + labels + leakage test | `model.py` on a stand-in `fact_snapshot` |
 | **15:00 sync** | — | **push `fact_snapshot` code** | pull, train on real data |
-| 15:00–15:40 | wire API to real functions; Dockerfile + compose (starts B's `ui/app.py`) | `loader.py`, **Streamlit UI**, README | evaluation, calibration, model card, experiment log |
-| **15:40 sync** | `docker compose up` works | README sections merged | **push `models/` + `reports/`** |
+| 15:00–15:40 | wire API to real functions; API tests | `loader.py`, **Streamlit UI**, README | evaluation, calibration, model card, experiment log |
+| **15:40 sync** | API runs locally (`uvicorn src.api:app`) | README sections merged | **push `models/` + `reports/`** |
 | 15:40–16:10 | rehearse demo end-to-end, fix, tag `final` | | |
 
 **Cut list if behind (in this order):** Streamlit to one page → bootstrap intervals from 20 not 50 models →
@@ -325,4 +325,4 @@ drop the `/explain` sensor detail. **Never cut:** time-based grouped validation,
 
 - Everyone works on `main`, touching only their own files (§3).
 - Before pushing: `git pull --rebase` then `git push`. Commit **at least every 30–45 minutes**, small messages.
-- Commit `data/` and `models/` (judges and Docker need them). Never commit `warehouse.db`, `.env`, `NOTES.local.md`.
+- Commit `data/` and `models/` (judges need them). Never commit `warehouse.db`, `.env`, `NOTES.local.md`.
