@@ -219,15 +219,14 @@ elif page.startswith("3"):
     baseline = age_plan(risk, costs, budget)
     actions = pd.DataFrame(plan["actions"])
 
-    # Two different kinds of value - never add them up:
-    #   a replacement REMOVES risk (the unit is new);  an inspection CHECKS hidden risk (it may reveal it)
-    def split(p):
-        a = pd.DataFrame(p["actions"], columns=["action", "cost", "risk_removed"])
-        replaced, inspected = a[a["action"] == "replace"], a[a["action"] == "inspect"]
-        return replaced["risk_removed"].sum(), len(replaced), inspected["risk_removed"].sum(), len(inspected)
+    # Two different kinds of value, reported separately by plan.py - never add them up:
+    #   risk_removed  = a replacement makes the risk go away;  risk_revealed = an inspection may uncover hidden risk
+    def count(p, action):
+        return sum(1 for a in p["actions"] if a["action"] == action)
 
-    removed, n_replace, checked, n_inspect = split(plan)
-    age_removed, age_n, _, _ = split(baseline)
+    removed, n_replace = plan["risk_removed"], count(plan, "replace")
+    checked, n_inspect = plan["risk_revealed"], count(plan, "inspect")
+    age_removed, age_n = baseline["risk_removed"], count(baseline, "replace")
     total_risk = plan["risk_before"]
 
     c1, c2, c3, c4 = st.columns(4)
