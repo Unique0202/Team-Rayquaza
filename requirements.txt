@@ -1,7 +1,16 @@
-# Member A Part 2: API and endpoint tests. Add/pin the remaining agreed stack in Part 3.
+# Shared-contract dependencies; verified together on Python 3.13.
+pandas==2.2.3
+numpy==2.2.6
+sqlalchemy==2.0.54
+scikit-learn==1.6.1
+scipy==1.15.3
+joblib==1.5.2
+matplotlib==3.10.7
 fastapi==0.128.8
 uvicorn==0.39.0
 pydantic==2.11.3
 python-multipart==0.0.20
+streamlit==1.50.0
+requests==2.32.5
 pytest==8.4.2
 httpx==0.27.2
