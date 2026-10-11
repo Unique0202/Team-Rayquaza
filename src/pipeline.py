@@ -297,7 +297,8 @@ def validate(silver: dict, bronze: dict, fixes: dict) -> None:
     else:
         results.append((True, "row counts match the data card", "SKIPPED - no data_card.json (e.g. judges' data)"))
 
-    lines = [f"Validation run {datetime.now().isoformat(timespec='seconds')} on {DATA_DIR}", "",
+    # No timestamp or machine path in the report: it is committed, so it should change only when the data does.
+    lines = [f"Validation of the CSVs in {DATA_DIR.name}/ ({sum(len(df) for df in bronze.values()):,} rows read)", "",
              "Cleaning applied before the checks:"]
     lines += [f"  - {name}: {count}" for name, count in fixes.items()]
     lines += ["", "Checks:"]
