@@ -5,41 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Design Brief</title>
 <style>
-  @page { size: A4; margin: 9mm 12mm; }
-  :root { --ink: #1a1a1a; --muted: #555; --line: #c9c9c9; --soft: #f4f1ec;
-          --bronze: #a0632a; --silver: #6f7780; --gold: #b08a1e; }
+  @page { size: A4; margin: 10mm 12mm; }
+  :root { --ink: #1a1a1a; --muted: #555; --line: #cfcfcf; --soft: #f4f1ec;
+          --bronze: #a0632a; --silver: #6f7780; --gold: #b08a1e; --accent: #8a1c1c; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #fff; color: var(--ink);
-         font: 9pt/1.28 "Segoe UI", Arial, sans-serif; }
-  .page { max-width: 186mm; margin: 0 auto; padding: 3mm 0; }
-  h1 { font-size: 14pt; margin: 0; }
+  body { margin: 0; background: #fff; color: var(--ink); font: 9pt/1.31 "Segoe UI", Arial, sans-serif; }
+  .page { max-width: 186mm; margin: 0 auto; padding: 2mm 0; }
+  h1 { font-size: 15pt; margin: 0; }
   .sub { color: var(--muted); font-size: 8.6pt; margin: .8mm 0 2mm; }
-  h2 { font-size: 9.8pt; margin: 2.4mm 0 1.2mm; padding-bottom: .6mm;
-       border-bottom: 1.2px solid var(--ink); text-transform: uppercase; letter-spacing: .04em; }
-  p { margin: 0 0 1mm; }
-  ul { margin: 0; padding-left: 4.5mm; }
-  li { margin: 0 0 .4mm; }
-  .flow { display: flex; align-items: stretch; gap: 1.2mm; margin: .5mm 0 1.6mm; font-size: 8.4pt; }
-  .flow div { flex: 1; text-align: center; padding: 1.3mm .8mm; border-radius: 1.2mm;
-              border: 1px solid var(--line); background: var(--soft); }
-  .flow .arrow { flex: 0 0 auto; border: 0; background: none; padding: 1.3mm 0; color: var(--muted); }
-  .flow b { display: block; font-size: 8.8pt; }
-  .b { border-left: 3px solid var(--bronze) !important; }
-  .s { border-left: 3px solid var(--silver) !important; }
-  .g { border-left: 3px solid var(--gold) !important; }
-  table { width: 100%; border-collapse: collapse; font-size: 8.3pt; }
-  th, td { text-align: left; vertical-align: top; padding: .8mm 1.4mm; border-bottom: 1px solid var(--line); }
-  th { font-size: 8.2pt; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); border-bottom: 1.2px solid var(--ink); }
-  td:first-child { font-weight: 700; white-space: nowrap; }
-  tr.b td:first-child { color: var(--bronze); }
-  tr.s td:first-child { color: var(--silver); }
-  tr.g td:first-child { color: var(--gold); }
+  h2 { font-size: 10.2pt; margin: 2.8mm 0 1.1mm; padding-bottom: .6mm; border-bottom: 1.3px solid var(--ink);
+       text-transform: uppercase; letter-spacing: .04em; break-after: avoid; }
+  h2 .n { color: var(--accent); margin-right: 1.5mm; }
+  h3 { font-size: 9.4pt; margin: 2mm 0 .8mm; break-after: avoid; }
+  p { margin: 0 0 1.2mm; }
+  ul, ol { margin: 0 0 1.2mm; padding-left: 4.8mm; }
+  li { margin: 0 0 .5mm; }
+  .say { background: var(--soft); border-left: 3px solid var(--accent); padding: 1.2mm 2.4mm; margin: 0 0 1.6mm;
+         font-size: 9pt; break-inside: avoid; }
+  .say b:first-child { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: .4mm 0 1.6mm; }
+  th, td { text-align: left; vertical-align: top; padding: .75mm 1.4mm; border-bottom: 1px solid var(--line); }
+  th { font-size: 8.1pt; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); border-bottom: 1.3px solid var(--ink); }
+  tr { break-inside: avoid; }
+  td.k { font-weight: 700; white-space: nowrap; }
+  tr.b td.k { color: var(--bronze); } tr.s td.k { color: var(--silver); } tr.g td.k { color: var(--gold); }
   code { font: 8.1pt Consolas, monospace; background: var(--soft); padding: 0 .6mm; border-radius: .6mm; }
+  .flow { display: flex; align-items: stretch; gap: 1.1mm; margin: .6mm 0 1.6mm; font-size: 8.3pt; }
+  .flow div { flex: 1; text-align: center; padding: 1.2mm .7mm; border-radius: 1.2mm; border: 1px solid var(--line); background: var(--soft); }
+  .flow .arrow { flex: 0 0 auto; border: 0; background: none; padding: 1.2mm 0; color: var(--muted); }
+  .flow b { display: block; font-size: 8.8pt; }
+  .fb { border-left: 3px solid var(--bronze) !important; } .fs { border-left: 3px solid var(--silver) !important; }
+  .fg { border-left: 3px solid var(--gold) !important; }
+  .grain { border: 1.5px solid var(--gold); border-radius: 1.5mm; padding: 1.4mm 2.4mm; margin: 1mm 0 1.4mm; break-inside: avoid; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 5mm; }
-  .box { background: var(--soft); border-radius: 1.5mm; padding: 1.6mm 2.4mm; font-size: 8.7pt; }
-  .grain { border: 1.5px solid var(--gold); border-radius: 1.5mm; padding: 1.4mm 2.4mm; margin: 1.4mm 0 0; font-size: 9pt; }
-  ol { margin: 0; padding-left: 4.8mm; }
-  ol li { margin: 0 0 .5mm; }
+  .ex { font-size: 8.7pt; background: #fbfaf7; border: 1px solid var(--line); border-radius: 1.2mm; padding: 1.2mm 2.2mm; margin: .6mm 0 1.4mm; break-inside: avoid; }
+  .keep { break-inside: avoid; }
   @media (max-width: 600px) { .page { padding: 4mm 16px; } .cols { grid-template-columns: 1fr; } .flow { flex-wrap: wrap; } }
 </style>
 </head>
@@ -47,91 +47,194 @@
 <div class="page">
 
 <h1>Team Rayquaza: Transformer Fleet Health &amp; Replacement Planning</h1>
-<div class="sub">HCLTech Future Ready AI Engineer Hackathon · DS/ML edition · 11 Oct 2026 · design brief</div>
+<div class="sub">HCLTech Future Ready AI Engineer Hackathon · Data Science &amp; ML edition · 11 Oct 2026 · design brief</div>
 
-<h2>What we understood</h2>
-<p>A utility has about 400 transformers and money to fix only a few. We predict each one's <b>chance of failing in the next 12 months</b>,
-compute <b>risk = probability × impact</b> (hospital 5, industry 3, urban 2, rural 1, × customers served), and choose which to
-<b>replace or inspect within the budget</b>, explaining every choice. A transformer with no oil test is never called "healthy".</p>
+<!-- 1 -->
+<h2><span class="n">1</span>The problem</h2>
+<div class="say"><b>In one line:</b> a power utility can only afford to fix a few transformers a year. We tell its engineer
+<b>which ones to replace or inspect first</b>, within the budget, and <b>why</b>.</div>
+<p>The utility owns about 400 power transformers. If one fails, everyone it feeds loses power: sometimes a hospital, sometimes a village.
+Repairing after a failure is far more expensive than planned replacement. The data is <b>thin and uneven</b>: oil tests (gases dissolved in
+the transformer oil, the best health signal) exist for only about 60% of units, and old units may have just one test.</p>
+<p><b>The user</b> is the asset-planning engineer. <b>The decision</b> they make: given this year's budget, which transformers to replace,
+which to inspect, and which to leave alone. They need numbers they can trust and a reason for every choice.</p>
 
-<h2>Architecture: medallion (raw → cleaned → business-ready)</h2>
-<div class="flow">
-  <div>4 CSVs<b>Source</b>synthetic, seeded</div><div class="arrow">→</div>
-  <div class="b">raw, as-is<b>Bronze</b>never edited</div><div class="arrow">→</div>
-  <div class="s">validated<b>Silver</b>clean, typed, deduped</div><div class="arrow">→</div>
-  <div class="g">modelled<b>Gold</b>star schema + snapshots</div><div class="arrow">→</div>
-  <div>decision<b>Risk + plan</b>model, knapsack</div><div class="arrow">→</div>
-  <div>serve<b>API + UI</b>FastAPI, Streamlit</div>
-</div>
-
+<!-- 2 -->
+<h2><span class="n">2</span>What our system delivers</h2>
+<div class="say"><b>In one line:</b> for every transformer, a <b>trustworthy chance of failure</b>. From that, a <b>risk ranking</b> and a
+<b>budget plan</b>, each with its reasons.</div>
 <table>
-  <tr><th style="width:14%">Layer</th><th style="width:47%">What happens (process)</th><th>Why it exists</th></tr>
-  <tr class="b"><td>Bronze</td>
-      <td>Each CSV is loaded <b>exactly as received</b> into <code>bronze_oil_tests</code>, <code>bronze_operation</code>,
-          <code>bronze_customers</code>, <code>bronze_costs</code>, with <code>_ingested_at</code> and <code>_source</code> added.
-          The late data drop (<code>/ingest</code>) also lands here first.</td>
-      <td>The <b>replay tape</b>: if a later step has a bug, we fix it and re-run from bronze without re-fetching anything. It is also the audit trail of what arrived and when.</td></tr>
-  <tr class="s"><td>Silver</td>
-      <td><b>Validate</b> (HCL checks as <code>assert</code>s: no future dates, gases &gt; 0, every unit has a customer type, row counts match the data card) →
-          <b>clean</b>: standardise IDs (<code>"tr-0045 "</code> → <code>TR-0045</code>), remove duplicate assets and rows, fix gas <b>unit jumps</b> (ppb logged as ppm, ×1000),
-          cast types. Gaps stay <b>NULL and flagged</b>, never silently filled.</td>
-      <td><b>One place</b> where data quality is enforced. Every later step can trust silver. Bad data fails loudly here instead of quietly corrupting the model.</td></tr>
-  <tr class="g"><td>Gold</td>
-      <td><b>Star schema:</b> <code>dim_transformer</code> (customer type, customers, impact weight, region, size class) ·
-          <code>dim_date</code> (calendar / quarter) · <code>fact_oil_test</code> (one row per transformer per test) ·
-          <code>fact_operation</code> (one row per transformer per month) ·
-          <b><code>fact_snapshot</code></b>: one row per transformer per quarter, with features built <b>only from data before that date</b>
-          (latest test via <code>ROW_NUMBER()</code>, change between tests via <code>LAG()</code>, 12-month load and temperature aggregates).</td>
-      <td>Shaped for <b>reading</b>, not storing. Dimensions are loaded once and read constantly. The snapshot table is the single, leakage-safe input to the model and the API.</td></tr>
-  <tr><td>Decision</td>
-      <td>Model scores each snapshot → <code>fact_risk</code> (probability, range, impact, risk) → <b>knapsack</b> picks actions within the budget → compared with an age-based plan.</td>
-      <td>Numbers come from code, not from text. Every run is stored, so we can show what changed after the late data drop.</td></tr>
+  <tr><th style="width:23%">The engineer asks</th><th>What our system answers</th></tr>
+  <tr><td class="k">Failure probability</td><td>"TR-0102 has a <b>19%</b> chance of failing in the next 12 months (likely 12–28%)." A probability <i>and</i> a range, because certainty differs per unit.</td></tr>
+  <tr><td class="k">Health score</td><td>A simple 0–100 score from the oil-gas readings, with the factors that drove it. Left blank, never "healthy", when there is no oil test.</td></tr>
+  <tr><td class="k">Missing data</td><td>A unit with no oil test is still scored but flagged <b>low confidence</b> with a wide range, and is recommended for inspection.</td></tr>
+  <tr><td class="k">Risk ranking</td><td>All transformers ranked by <b>risk = probability × impact</b>, with the reasoning for each.</td></tr>
+  <tr><td class="k">Budget plan</td><td>"With 5 million, replace these 12 and inspect these 30." It fits the budget and removes more risk than replacing the oldest units.</td></tr>
+  <tr><td class="k">Model quality</td><td>Honest test results on data the model never saw, compared with simple rules, including where it fails.</td></tr>
 </table>
 
+<!-- 3 -->
+<h2><span class="n">3</span>Architecture: medallion (raw → cleaned → business-ready)</h2>
+<div class="say"><b>In one line:</b> data flows through three layers: <b>bronze</b> keeps it exactly as received, <b>silver</b> cleans and
+checks it, <b>gold</b> shapes it for analysis. Then the model, the plan and the API sit on top.</div>
+<div class="flow">
+  <div>4 CSVs<b>Source</b>synthetic, seeded</div><div class="arrow">→</div>
+  <div class="fb">raw, as-is<b>Bronze</b>never edited</div><div class="arrow">→</div>
+  <div class="fs">validated<b>Silver</b>clean, typed, deduped</div><div class="arrow">→</div>
+  <div class="fg">modelled<b>Gold</b>star schema + snapshots</div><div class="arrow">→</div>
+  <div>predict + decide<b>Model + plan</b>risk, knapsack</div><div class="arrow">→</div>
+  <div>serve<b>API + UI</b>FastAPI, Streamlit</div>
+</div>
+<table>
+  <tr><th style="width:12%">Layer</th><th style="width:50%">What happens</th><th>Why it exists</th></tr>
+  <tr class="b"><td class="k">Bronze</td>
+      <td>Each CSV is loaded <b>exactly as received</b> into its own table (<code>bronze_oil_tests</code>, <code>bronze_operation</code>, …), with two
+          extra columns: when it arrived (<code>_ingested_at</code>) and which file it came from (<code>_source</code>). New files from the late data drop land here first.</td>
+      <td>The <b>replay tape</b>. If a later step has a bug, we fix it and re-run from bronze without re-fetching anything. It is also the audit trail of what arrived and when.</td></tr>
+  <tr class="s"><td class="k">Silver</td>
+      <td><b>Validate</b> first: HCL's checks run as hard <code>assert</code>s (no future dates, gas values positive, every transformer has a customer type,
+          costs positive, row counts match the data card). Then <b>clean</b>: fix IDs (<code>"tr-0045 "</code> → <code>TR-0045</code>), remove duplicate assets and rows,
+          correct gas <b>unit jumps</b> (a reading logged in ppb instead of ppm is 1000× too high), set proper types. Gaps stay <b>empty and flagged</b>, never silently filled.</td>
+      <td>The <b>one place</b> data quality is enforced. Everything after silver can trust the data. Bad data fails loudly here instead of quietly corrupting the model.</td></tr>
+  <tr class="g"><td class="k">Gold</td>
+      <td>A <b>star schema</b>: <code>dim_transformer</code> (who it serves, customers, impact weight, region, size class) · <code>dim_date</code> (calendar) ·
+          <code>fact_oil_test</code> (one row per test) · <code>fact_operation</code> (one row per month of loading and temperature) ·
+          <b><code>fact_snapshot</code></b>, the table the model learns from (see the grain below).</td>
+      <td>Shaped for <b>reading</b>, not storing. Fewer joins, simpler queries. The snapshot table is the single, leakage-safe input for the model <i>and</i> the API.</td></tr>
+</table>
 <div class="grain"><b>Grain of the core table:</b> one row of <code>fact_snapshot</code> = <b>one transformer at one quarterly snapshot date</b>.
-Features use only data from <i>before</i> that date; the label is "failed in the following 12 months". This is how leakage is prevented by design.</div>
+Picture standing on 1 Jan 2025 and asking: <i>"Using only what we knew that day, will this transformer fail in the next 12 months?"</i>
+Every input uses data from <b>before</b> the date. The answer (the label) comes from the 12 months <b>after</b> it. This is how we stop the model
+from "seeing the future", the mistake HCL disqualifies teams for. The "latest test before the date" and "change since the previous test" are built with SQL window functions (<code>ROW_NUMBER</code>, <code>LAG</code>).</div>
 
+<!-- 4 -->
+<h2><span class="n">4</span>The data: we generate all four files</h2>
+<div class="say"><b>In one line:</b> HCL provides no data, so we generate a <b>realistic, reproducible</b> fleet with every trap from the guide
+planted on purpose, so we can show each one being handled.</div>
+<p><b>What we generate:</b> 400 transformers over 36 months (Oct 2023 – Sep 2026). Monthly loading, oil temperature and age; oil-gas tests for
+about 62% of units (38% never tested); who each unit serves; and action costs plus the annual budget. Gas readings follow textbook fault patterns:
+overheating raises ethylene and methane, electrical arcing raises acetylene. Failures follow a <b>written-down rule</b>: older, overloaded units with a
+developing gas fault fail more often, plus randomness. Fixed random seed, so the same data comes out every run. A data card documents everything.</p>
+<table class="keep">
+  <tr><th style="width:36%">Edge case in the guide (planted)</th><th>How our system handles it</th></tr>
+  <tr><td>Transformers with no oil test at all</td><td>A "has oil test" flag feeds the model; result marked <b>low confidence</b> with a wide range; never called healthy; inspected before any replacement.</td></tr>
+  <tr><td>Old transformers with few measurements</td><td>Wider uncertainty range and a low-confidence status; the plan prefers inspecting them first.</td></tr>
+  <tr><td>Look-alike pair: hospital vs rural</td><td>Same probability, very different <b>impact</b>, so the hospital unit ranks far higher in risk.</td></tr>
+  <tr><td>Gas values jump because of a unit change</td><td>Silver detects a ~1000× jump against that unit's history, rescales it and flags it.</td></tr>
+  <tr><td>Recent repair resets the pattern</td><td>Only oil tests taken <b>after</b> the last repair count towards current health.</td></tr>
+  <tr><td>Budget cannot cover all high-risk units</td><td>The optimiser picks the best risk reduction per unit of money; the rest are listed as deferred.</td></tr>
+</table>
+
+<!-- 5 -->
+<h2><span class="n">5</span>The model: what we train and what it is for</h2>
+<div class="say"><b>In one line:</b> we train a model that reads a transformer's history and outputs its <b>chance of failing in the next 12 months</b>.
+We keep it simple, test it honestly, and make sure its probabilities can be trusted.</div>
 <div class="cols">
 <div>
-<h2>How one run works</h2>
-<ol>
-  <li><code>python src/pipeline.py</code>: one command, one status line per stage.</li>
-  <li>Load → bronze → validate + clean → silver → build gold.</li>
-  <li>Score every transformer → risk → budget plan.</li>
+<h3>What it learns from</h3>
+<ul>
+  <li><b>Each training example</b> = one transformer at one snapshot date, with the answer: did it fail in the next 12 months?</li>
+  <li><b>Inputs</b> in plain terms:
+      <ul><li><b>Oil-gas readings</b>: latest levels, gas ratios that indicate the fault type, and how fast gases are rising</li>
+          <li><b>Stress</b>: average and peak loading, months running hot</li>
+          <li><b>Age</b>, and how stale our information is (months since the last test)</li>
+          <li><b>Whether it has ever been tested</b>: being untested may itself signal risk</li></ul></li>
+</ul>
+<h3>What we train</h3>
+<ul>
+  <li><b>Two simple baselines</b> to beat: an <b>age-only</b> rule ("older = riskier") and a hand-written <b>health index</b> from the gas readings.</li>
+  <li><b>Logistic regression</b>: each input gets a weight, and the weighted sum becomes a probability. Fully readable. Our expected winner, because there are few failures to learn from.</li>
+  <li><b>Gradient boosting</b> (many small decision trees) for comparison. It is kept only if it clearly beats the simpler model.</li>
+  <li>We compare <b>three ways of handling missing readings</b>, as the guide asks, and pick the best by the numbers.</li>
+</ul>
+</div>
+<div>
+<h3>How we make it trustworthy</h3>
+<ul>
+  <li><b>Honest testing:</b> train on earlier dates, test on later dates, and on transformers the model has never seen, the way it will be used in real life. The final test period is locked away and used once.</li>
+  <li><b>Calibration:</b> when the model says 20%, about 20 in 100 such units should really fail. This matters because the risk formula multiplies the probability directly.</li>
+  <li><b>Uncertainty range:</b> each unit gets a range, not just a number. It is wider when we know less (no test, old test).</li>
+  <li><b>Explanations:</b> for every transformer, the top factors behind its score (e.g. "acetylene rising + peak load 95%").</li>
+</ul>
+<h3>How we measure it</h3>
+<ul>
+  <li>Are the real failures near the <b>top</b> of our list? (PR-AUC, and top-10% recall)</li>
+  <li>Are the <b>probabilities honest</b>? (Brier score, reliability chart)</li>
+  <li>Results for <b>never-tested units reported separately</b>.</li>
+  <li>Accuracy is <b>not</b> used: "nothing will fail" is about 96% accurate and useless.</li>
+</ul>
+</div>
+</div>
+
+<!-- 6 -->
+<h2><span class="n">6</span>From prediction to decision: risk and the budget plan</h2>
+<div class="say"><b>In one line:</b> risk = <b>chance of failure × who loses power</b>. An optimiser then picks the set of replacements and inspections
+that removes the most risk without exceeding the budget.</div>
+<div class="ex"><b>Worked example (HCL's rule: hospital 5, industry 3, urban 2, rural 1, × customers):</b>
+TR-0102 serves a hospital with 12,000 customers: impact 60,000, failure chance 19% → <b>risk 11,400</b>.
+TR-0117 serves a rural area with 2,000 customers: impact 2,000, failure chance 25% → <b>risk 500</b>.
+TR-0102 comes first even though TR-0117 is more likely to fail.</div>
+<ul>
+  <li><b>Replace</b> when risk is high <i>and</i> we know the unit well (recent oil tests). A new unit removes almost all of its risk.</li>
+  <li><b>Inspect</b> when we know little (no test, old test, wide range). Inspection is cheap, and its value is the hidden risk it could reveal.
+      <b>We never spend on a blind replacement:</b> an untested unit is inspected first.</li>
+  <li><b>Choosing within the budget</b> is a classic <b>knapsack</b> problem: each action has a cost and a value (risk removed), and we pick the best
+      combination that fits. Each transformer gets at most one action.</li>
+  <li>We compare against an <b>age-based plan</b> (replace the oldest until the money runs out) and show how much more risk our plan removes.</li>
+  <li><b>Every plan is a proposal.</b> The engineer approves it.</li>
+</ul>
+<div class="ex"><b>Mentor feedback we acted on (12:00):</b> <i>"If an inspection shows the transformer is worse than predicted, its risk should go up."</i>
+Our design: an inspection <b>is</b> a new oil test. Its result is loaded (<code>/ingest</code>), the pipeline re-runs, the model re-scores, and if the
+unit is worse its probability rises and its range narrows. The next plan then <b>replaces it automatically</b> if the budget allows. If it is fine,
+it drops off the list. The 13:45 late data drop (new oil tests) shows exactly this loop live.</div>
+
+<!-- 7 -->
+<h2><span class="n">7</span>How it runs and how judges use it</h2>
+<div class="cols keep">
+<div>
+<h3>One command, safe to repeat</h3>
+<ul>
+  <li><code>python -m src.pipeline</code> runs load → bronze → validate + clean → silver → gold, printing one status line per stage.</li>
   <li><b>Re-runnable:</b> silver and gold are rebuilt in full, so running twice gives identical results.</li>
-  <li><b>Atomic:</b> gold is written in one transaction; a failed load rolls back.</li>
-  <li><b>Late drop (13:45):</b> new oil tests + new budget → <code>/ingest</code> → bronze → re-run → show what changed.</li>
-</ol>
+  <li><b>All-or-nothing writes:</b> gold is written in one transaction; a failure rolls back.</li>
+  <li><code>docker compose up</code> starts the API and the UI.</li>
+</ul>
 </div>
 <div>
-<h2>Key design decisions</h2>
-<ul>
-  <li><b>Medallion over one script:</b> raw data is kept, so any step can be replayed and audited.</li>
-  <li><b>Star schema over 3NF in gold:</b> fewer joins for reading; we accept some redundancy in dimensions.</li>
-  <li><b>Quarterly snapshots:</b> monthly gives near-duplicate rows (tests every 6–12 months); yearly gives too few.</li>
-  <li><b>Full refresh over incremental:</b> about 15k rows rebuild in seconds; incremental would need a watermark and adds failure modes.</li>
-  <li><b>SQLite:</b> no server, nothing to break on venue wifi; window functions do the as-of joins.</li>
-  <li><b>SCD Type 1</b> on <code>dim_transformer</code>; Type 2 noted as a known limitation.</li>
-</ul>
+<table>
+  <tr><th>Endpoint</th><th>What it does</th></tr>
+  <tr><td><code>POST /predict</code></td><td>scores transformers: probability, range, drivers</td></tr>
+  <tr><td><code>POST /plan</code></td><td>budget plan vs the age-based plan</td></tr>
+  <tr><td><code>POST /ingest</code></td><td>loads a new CSV, then re-runs</td></tr>
+  <tr><td><code>GET /model/info</code></td><td>model card: method, data window, metrics</td></tr>
+  <tr><td><code>GET /explain/{id}</code></td><td>why this unit scored what it did</td></tr>
+  <tr><td><code>GET /health</code></td><td>API, database and model status</td></tr>
+</table>
 </div>
 </div>
 
-<div class="cols">
-<div>
-<h2>Model layer: kept simple</h2>
-<div class="box">Compare simple <b>baselines</b> (age-only, a rule-based health score) against <b>logistic regression</b>.
-A more complex model is kept only if it clearly beats them. Probabilities are <b>calibrated</b> so "20%" means about 20%.
-Testing is honest: train on earlier periods, test on later ones and on transformers the model has never seen.</div>
-</div>
-<div>
-<h2>Data: we generate all 4 files</h2>
-<ul>
-  <li>400 transformers, 36 months (Oct 2023 – Sep 2026), about 38% never oil-tested.</li>
-  <li>Failures follow a documented rule (age, overload, gas fault) plus randomness.</li>
-  <li>All 6 HCL edge cases planted on purpose, listed in the data card.</li>
-</ul>
-</div>
-</div>
+<!-- 8 -->
+<h2><span class="n">8</span>Key design decisions: what we chose and what we rejected</h2>
+<table class="keep">
+  <tr><th style="width:22%">Decision</th><th style="width:20%">Rejected</th><th>Why</th></tr>
+  <tr><td class="k">Medallion layers</td><td>one script, raw → model</td><td>Raw data is kept, so any step can be replayed and audited; quality is enforced in one place.</td></tr>
+  <tr><td class="k">Star schema in gold</td><td>fully normalised (3NF)</td><td>Gold is read constantly and written once, so fewer joins matter more than avoiding some repetition.</td></tr>
+  <tr><td class="k">Quarterly snapshots</td><td>monthly / yearly</td><td>Oil tests come every 6–12 months, so monthly rows would be near-duplicates and yearly gives too few examples.</td></tr>
+  <tr><td class="k">Simple model first</td><td>complex model by default</td><td>With few failures, complex models memorise noise. A simple model must be beaten before anything replaces it.</td></tr>
+  <tr><td class="k">Full refresh</td><td>incremental loads</td><td>About 15k rows rebuild in seconds; incremental would need a watermark and adds failure modes.</td></tr>
+  <tr><td class="k">SQLite</td><td>PostgreSQL server</td><td>No server to fail on venue wifi; window functions cover our queries; fine at this size.</td></tr>
+  <tr><td class="k">Inspect before replacing</td><td>replace on prediction alone</td><td>A replacement is ~25× the cost of an inspection; never spend it on a unit we have not looked at.</td></tr>
+</table>
+
+<!-- 9 -->
+<h2><span class="n">9</span>Who builds what</h2>
+<table class="keep">
+  <tr><th style="width:24%">Member</th><th>Owns</th></tr>
+  <tr><td class="k">A: Data &amp; Serving</td><td>synthetic data generator and data card; FastAPI endpoints; Streamlit UI; Docker</td></tr>
+  <tr><td class="k">B: Architecture (Unique)</td><td>bronze → silver → gold, validation, the shared feature function (used by training <i>and</i> the API), loader, README</td></tr>
+  <tr><td class="k">C: Model &amp; Plan</td><td>baselines, models, honest testing, calibration, explanations; risk and the knapsack plan; evaluation report</td></tr>
+</table>
+<p style="font-size:8.5pt;color:var(--muted)">All three build against one written contract (every table, column and function agreed up front), so work runs in parallel and joins cleanly.</p>
 
 </div>
 </body>
