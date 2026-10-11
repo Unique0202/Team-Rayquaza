@@ -104,7 +104,8 @@ def test_total_cost_never_exceeds_budget_and_one_action_per_transformer():
         ids = [a["transformer_id"] for a in plan["actions"]]
         assert plan["total_cost"] <= budget + 1e-6, (trial, plan["total_cost"], budget)
         assert len(ids) == len(set(ids)), trial
-        assert all(a["cost"] > 0 and a["risk_removed"] > 0 for a in plan["actions"])
+        assert all(a["cost"] > 0 and a["value"] > 0 for a in plan["actions"])
+        assert plan["risk_reduced_pct"] <= 100 + 1e-9                                 # can never remove more than exists
         for a in plan["actions"]:                                                  # the no-blind-replacement rule, everywhere
             if a["action"] == "replace":
                 row = risk[risk["transformer_id"] == a["transformer_id"]].iloc[0]
@@ -122,18 +123,22 @@ def test_with_a_huge_budget_every_unit_gets_its_best_positive_action():
         best_action = max(values, key=values.get)
         if values[best_action] > 0:
             assert chosen[row["transformer_id"]]["action"] == best_action
-            assert abs(chosen[row["transformer_id"]]["risk_removed"] - values[best_action]) < 1e-9
+            assert abs(chosen[row["transformer_id"]]["value"] - values[best_action]) < 1e-9
         else:
             assert row["transformer_id"] not in chosen
 
 
 def test_knapsack_removes_at_least_as_much_risk_as_the_age_plan():
-    """On units that may all be replaced, the exact plan can never do worse than 'oldest first'."""
+    """On units that may all be replaced, the exact plan can never do worse than 'oldest first' on what it maximises
+    (the age plan is one of the plans the knapsack could have picked), and the replace-only optimum never removes less
+    actual risk than the age plan."""
     for trial in range(60):
         risk = _random_fleet(30, 100 + trial)
         risk["has_oil_test"], risk["months_since_last_test"] = 1, 4.0
         budget = 1_000_000.0
-        assert make_plan(risk, COSTS, budget)["risk_removed"] >= age_plan(risk, COSTS, budget)["risk_removed"] - 1e-9, trial
+        age = age_plan(risk, COSTS, budget)
+        assert make_plan(risk, COSTS, budget)["value"] >= age["value"] - 1e-9, trial
+        assert make_plan(risk, COSTS, budget, allow_inspect=False)["risk_removed"] >= age["risk_removed"] - 1e-9, trial
 
 
 def test_budget_edges_zero_tiny_and_exact():
@@ -183,7 +188,7 @@ def test_plan_has_the_contract_shape_and_a_rationale_for_every_action():
     assert {"actions", "total_cost", "budget", "risk_before", "risk_removed", "risk_reduced_pct"} <= set(plan)
     assert plan["actions"] and 0 <= plan["risk_reduced_pct"] <= 100
     for a in plan["actions"]:
-        assert {"transformer_id", "action", "cost", "risk_before", "risk_removed", "rationale"} <= set(a)
+        assert {"transformer_id", "action", "cost", "risk_before", "risk_removed", "risk_revealed", "value", "rationale"} <= set(a)
         assert a["action"] in ("inspect", "replace") and len(a["rationale"]) > 20 and a["requires_approval"] is True
 
 
@@ -202,3 +207,23 @@ def test_cost_unit_is_5000_and_costs_are_rounded_up_never_down():
     risk = _risk([{"id": "A", "p": 0.2, "hi": 0.5, "impact": 100000, "tested": 0}])
     assert make_plan(risk, odd, 14999)["actions"] == [] or make_plan(risk, odd, 14999)["total_cost"] <= 14999
     assert make_plan(risk, odd, 15000)["total_cost"] <= 15000 and COST_UNIT == 5000
+
+
+# ---- honest reporting: removed vs revealed ------------------------------------------------------------------
+def test_inspections_reveal_risk_but_remove_none_and_replacements_never_remove_more_than_the_unit_has():
+    """Regression: inspections used to count as removed risk, so the real-data plan claimed 108% of the fleet's risk."""
+    risk = _random_fleet(80, 11)
+    plan = make_plan(risk, COSTS, 2_000_000)
+    assert plan["n_inspect"] > 0 and plan["n_replace"] > 0
+    for a in plan["actions"]:
+        if a["action"] == "inspect":
+            assert a["risk_removed"] == 0 and a["risk_revealed"] > 0
+        else:
+            assert a["risk_revealed"] == 0 and 0 < a["risk_removed"] <= a["risk_before"]
+    assert abs(plan["value"] - (plan["risk_removed"] + plan["risk_revealed"])) < 1e-6
+    assert 0 <= plan["risk_reduced_pct"] <= 100
+
+
+def test_replace_only_plan_has_no_inspections():
+    plan = make_plan(_random_fleet(40, 12), COSTS, 1_000_000, allow_inspect=False)
+    assert plan["n_inspect"] == 0 and all(a["action"] == "replace" for a in plan["actions"])

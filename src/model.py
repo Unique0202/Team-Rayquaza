@@ -146,12 +146,29 @@ class KeepObserved(BaseEstimator, TransformerMixin):
         return X[self.keep_]
 
 
+class ClipToTrainingRange(BaseEstimator, TransformerMixin):
+    """Clips every feature to the 1st..99th percentile seen in the TRAINING rows (missing values stay missing).
+    Why: a linear model extrapolates. One real unit had acetylene far above anything in training, and logistic regression
+    turned that into a 99.85% failure chance where the data's own process gives about 7%. Clipping says 'at least as bad as
+    the worst we have seen', which keeps the ranking but stops impossible certainty. Fitted on training rows only."""
+    def fit(self, X, y=None):
+        self.lo_ = X.quantile(0.01)
+        self.hi_ = X.quantile(0.99)
+        return self
+
+    def transform(self, X):
+        return X.clip(lower=self.lo_, upper=self.hi_, axis=1)
+
+    def get_feature_names_out(self, input_features=None):
+        return np.asarray(self.lo_.index, dtype=object)
+
+
 def make_pipeline(model: str, method: str) -> Pipeline:
     """(i) logreg + median imputation, (ii) logreg + median + missing-indicator columns, (iii) boosting with native NaN.
     class_weight='balanced' because failures are rare; it distorts raw probabilities, which calibration then repairs."""
     if model == "logreg":
         imputer = SimpleImputer(strategy="median", add_indicator=(method == "median_indicator"), keep_empty_features=True)
-        return Pipeline([("impute", imputer), ("scale", StandardScaler()),
+        return Pipeline([("clip", ClipToTrainingRange()), ("impute", imputer), ("scale", StandardScaler()),
                          ("clf", LogisticRegression(max_iter=2000, **PARAMS["logreg"]))])
     return Pipeline([("keep", KeepObserved()),
                      ("clf", HistGradientBoostingClassifier(random_state=SEED, **PARAMS["hgb"]))])   # NaN handled inside the trees
@@ -496,11 +513,11 @@ def model_info() -> dict:
 def _read_warehouse():
     """Real inputs from B's warehouse: fact_snapshot, dim_transformer, silver_costs, silver_budget."""
     from src.pipeline import get_connection                       # B's file
-    conn = get_connection()
-    snap = pd.read_sql("SELECT * FROM fact_snapshot", conn)
-    dim = pd.read_sql("SELECT * FROM dim_transformer", conn)
-    costs = pd.read_sql("SELECT * FROM silver_costs", conn)
-    budget = float(pd.read_sql("SELECT annual_budget FROM silver_budget", conn)["annual_budget"].iloc[0])
+    with get_connection() as conn:                                # B's connection is meant for a `with` block
+        snap = pd.read_sql("SELECT * FROM fact_snapshot", conn)
+        dim = pd.read_sql("SELECT * FROM dim_transformer", conn)
+        costs = pd.read_sql("SELECT * FROM silver_costs", conn)
+        budget = float(pd.read_sql("SELECT annual_budget FROM silver_budget", conn)["annual_budget"].iloc[0])
     return snap, dim, costs, budget
 
 
@@ -582,8 +599,10 @@ def train(snapshots: pd.DataFrame | None = None, dim_transformer: pd.DataFrame |
     plot_reliability(test, out_dir)
     budget_result = budget_test(test, fm, dim_transformer, costs, budget, len(snapshots["transformer_id"].unique()))
     if budget_result:
-        say(f"  budget  : model plan removes {budget_result['model_plan']['risk_removed']:,.0f} risk vs age plan "
-            f"{budget_result['age_plan']['risk_removed']:,.0f}; real failures in chosen units: "
+        mp = budget_result["model_plan"]
+        say(f"  budget  : model plan removes {mp['risk_removed']:,.0f} risk ({mp['risk_reduced_pct']:.1f}%) and reveals {mp['risk_revealed']:,.0f} "
+            f"({mp['n_replace']} replace, {mp['n_inspect']} inspect); age plan removes {budget_result['age_plan']['risk_removed']:,.0f} "
+            f"({budget_result['age_plan']['risk_reduced_pct']:.1f}%); replace-only optimum removes {budget_result['replace_only']['risk_removed']:,.0f}; real failures in chosen units: "
             f"{budget_result['observed']['model_failures']} vs {budget_result['observed']['age_failures']}")
 
     # ---- deployed model: same configuration refitted on every labelled row (after the single held-out evaluation) -----
@@ -655,10 +674,11 @@ def budget_test(test, fm, dim_transformer, costs, budget, fleet_size):
     risk = P.compute_risk(scores, dim_transformer)
     scaled = float(budget) * len(rows) / fleet_size
     mine, age = P.make_plan(risk, costs, scaled), P.age_plan(risk, costs, scaled)
+    replace_only = P.make_plan(risk, costs, scaled, allow_inspect=False)     # what the money would remove with no inspections
     truth = rows.set_index("transformer_id")["failed_next_12m"]
     caught = lambda plan: int(sum(truth[a["transformer_id"]] for a in plan["actions"]))
     gain = 100 * (mine["risk_removed"] / age["risk_removed"] - 1) if age["risk_removed"] > 0 else None
-    return {"as_of": str(last.date()), "units": len(rows), "budget_scaled": scaled, "model_plan": mine, "age_plan": age,
+    return {"as_of": str(last.date()), "units": len(rows), "budget_scaled": scaled, "model_plan": mine, "age_plan": age, "replace_only": replace_only,
             "gain_pct": gain, "observed": {"model_failures": caught(mine), "age_failures": caught(age)}}
 
 
@@ -706,8 +726,14 @@ def write_evaluation(out_dir, split, summary, chosen, final, no_test, width_chec
     lines += ["", "Importance shows what the model uses, not what causes failures.", "", "## Budget test (held-out snapshot)"]
     if budget:
         lines += [f"- Snapshot {budget['as_of']}, {budget['units']} units, budget scaled to {budget['budget_scaled']:,.0f}.",
-                  f"- Model plan removes {budget['model_plan']['risk_removed']:,.0f} risk ({budget['model_plan']['risk_reduced_pct']:.1f}% of total) with {len(budget['model_plan']['actions'])} actions costing {budget['model_plan']['total_cost']:,.0f}.",
-                  f"- Age plan removes {budget['age_plan']['risk_removed']:,.0f} risk with {len(budget['age_plan']['actions'])} replacements costing {budget['age_plan']['total_cost']:,.0f}.",
+                  f"- Model plan ({budget['model_plan']['n_replace']} replacements, {budget['model_plan']['n_inspect']} inspections, cost {budget['model_plan']['total_cost']:,.0f}): "
+                  f"removes {budget['model_plan']['risk_removed']:,.0f} risk ({budget['model_plan']['risk_reduced_pct']:.1f}% of the units' total) and reveals up to "
+                  f"{budget['model_plan']['risk_revealed']:,.0f} hidden risk for the next plan to act on.",
+                  f"- Age plan ({len(budget['age_plan']['actions'])} replacements, cost {budget['age_plan']['total_cost']:,.0f}): removes {budget['age_plan']['risk_removed']:,.0f} risk "
+                  f"({budget['age_plan']['risk_reduced_pct']:.1f}%).",
+                  f"- For reference, a replace-only knapsack would remove {budget['replace_only']['risk_removed']:,.0f} ({budget['replace_only']['risk_reduced_pct']:.1f}%): "
+                  "the gap is what the inspections cost in risk removed this year, in exchange for looking at untested and uncertain units.",
+                  "- Only replacements remove risk. Inspections reveal it; their results return through /ingest and the next plan acts on them.",
                   f"- Real failures among units each plan acted on: model plan {budget['observed']['model_failures']}, age plan {budget['observed']['age_failures']}."]
     else:
         lines.append("- Not run: no cost table was supplied.")
@@ -719,5 +745,8 @@ def write_evaluation(out_dir, split, summary, chosen, final, no_test, width_chec
 
 
 if __name__ == "__main__":
+    # Run via the real module name: `python -m src.model` executes this file as "__main__", and joblib would then save the
+    # model as "__main__.FinalModel", which the API (importing src.model) could not load. Importing it fixes that.
+    from src import model as real_module
     print("\nModel training and evaluation (reads the warehouse)\n")
-    train()
+    real_module.train()

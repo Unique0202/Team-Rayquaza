@@ -1,0 +1,87 @@
+{
+  "model_card": {
+    "name": "Transformer failure within 12 months",
+    "version": "logreg-2026-10-11-a",
+    "algorithm": "logreg with median missing-data handling, Platt (sigmoid) calibration, 30-copy bootstrap interval",
+    "snapshot_design": "Quarterly snapshots, label = failure in the next 12 months; labelable 2024-01-01 to 2025-10-01",
+    "validation": "Grouped by transformer, time-aware (train on earlier snapshots), 5 repeats (seeds 42 to 46); held-out = last 2 labelable snapshots x 20% of transformers, used once, with a 12-month purge",
+    "missing_data_methods_compared": [
+      "median imputation",
+      "median + missing indicators",
+      "native missing support (boosting)"
+    ],
+    "baselines": {
+      "age_only": {
+        "pr_auc": 0.152,
+        "pr_auc_ci90": [
+          0.052,
+          0.406
+        ],
+        "top10pct_recall": 0.333,
+        "lift_top10": 3.33,
+        "brier": 0.0516,
+        "n_pos": 9,
+        "n_rows": 160
+      },
+      "rule_health_index": {
+        "pr_auc": 0.356,
+        "pr_auc_ci90": [
+          0.054,
+          0.711
+        ],
+        "top10pct_recall": 0.333,
+        "lift_top10": 3.33,
+        "brier": 0.0485,
+        "n_pos": 9,
+        "n_rows": 160
+      }
+    },
+    "final": {
+      "pr_auc": 0.104,
+      "pr_auc_ci90": [
+        0.038,
+        0.224
+      ],
+      "top10pct_recall": 0.111,
+      "lift_top10": 1.11,
+      "brier": 0.0528,
+      "n_pos": 9,
+      "n_rows": 160
+    },
+    "final_uncalibrated": {
+      "pr_auc": 0.096,
+      "pr_auc_ci90": [
+        0.035,
+        0.223
+      ],
+      "top10pct_recall": 0.111,
+      "lift_top10": 1.11,
+      "brier": 0.1824,
+      "n_pos": 9,
+      "n_rows": 160
+    },
+    "no_oil_test_units": {
+      "pr_auc": 0.077,
+      "pr_auc_ci90": [
+        0.05,
+        0.26
+      ],
+      "top10pct_recall": 0.0,
+      "lift_top10": 0.0,
+      "brier": 0.0164,
+      "n_pos": 1,
+      "n_rows": 62
+    },
+    "budget_test": {
+      "risk_reduced_vs_age_plan_pct": 337.1
+    },
+    "interval_width_check": {
+      "median_width_no_oil_test": 0.12055291986959822,
+      "median_width_with_oil_test": 0.07052002917313405
+    },
+    "beats_age_only_in_cv": false,
+    "deployed_model": "refitted on all labelled rows with the same configuration after the held-out evaluation; reported metrics are for the development fit",
+    "known_limits": "Only 38 failure rows in development data and 9 in the held-out set; intervals are wide and describe model spread, not a guarantee. Synthetic data. Replace value assumes a new unit has a 1% yearly failure chance.",
+    "random_seed": 42
+  }
+}

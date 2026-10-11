@@ -14,6 +14,14 @@ transformer really is):
                                            know little (inspection is valuable), a narrow one means ~0
   A transformer with no usable oil test, or a last test older than 18 months, cannot be replaced blind:
   it can only be inspected.
+
+What the plan REPORTS (kept honest, separate from what it maximises):
+  risk_removed  = risk that actually goes away this year. Only a replacement does that: (p - 0.01) x impact.
+  risk_revealed = hidden risk an inspection could uncover: (p_high - p) x impact. An inspection removes nothing by
+                  itself; its result comes back through /ingest and the NEXT plan acts on it (contract section 8.4).
+  value         = what the knapsack maximises = removed + revealed (contract section 8, unchanged).
+  Counting revealed risk as removed made the plan claim 108% of the fleet's risk removed on the real data, because
+  159 of 252 inspections "removed" more than the unit's own risk. risk_reduced_pct now uses removed risk only.
 """
 
 import numpy as np
@@ -109,26 +117,41 @@ def _rationale(row, action: str, cost: float, removed: float) -> str:
         return (f"replace: failure chance {p:.1%} (90% range {lo:.1%} to {hi:.1%}) x impact {impact:,.0f}; "
                 f"a new unit is assumed {NEW_UNIT_RISK:.0%}, so this removes about {removed:,.0f} risk for {cost:,.0f}")
     reason = "no usable oil test" if not can_replace(row) else "range is wide"
-    return (f"inspect: {reason}; the range {lo:.1%} to {hi:.1%} is {hi - p:.1%} above the estimate {p:.1%}, and an "
-            f"inspection could reveal up to {removed:,.0f} risk (impact {impact:,.0f}) for {cost:,.0f}")
+    return (f"inspect: {reason}; the range {lo:.1%} to {hi:.1%} is {hi - p:.1%} above the estimate {p:.1%}, so an "
+            f"inspection could reveal up to {removed:,.0f} hidden risk (impact {impact:,.0f}) for {cost:,.0f}; "
+            f"it removes nothing until the next plan acts on the result")
+
+
+def _action(row, action: str, cost: float, value: float, rationale: str) -> dict:
+    """One chosen action. risk_removed and risk_revealed are kept apart: only a replacement removes risk."""
+    return {"transformer_id": row["transformer_id"], "action": action, "cost": cost,
+            "risk_before": float(row["risk_score"]),
+            "risk_removed": float(value) if action == "replace" else 0.0,
+            "risk_revealed": float(value) if action == "inspect" else 0.0,
+            "value": float(value), "rationale": rationale, "requires_approval": True}
 
 
 def _result(actions: list, risk: pd.DataFrame, budget: float) -> dict:
-    """Package a list of chosen actions in the shape the contract asks for, and re-check the two hard rules."""
+    """Package a list of chosen actions in the shape the contract asks for, and re-check the hard rules."""
     total_cost = float(sum(a["cost"] for a in actions))
     ids = [a["transformer_id"] for a in actions]
     assert total_cost <= budget + 1e-6, "plan exceeds budget"
     assert len(ids) == len(set(ids)), "a transformer got two actions"
+    assert all(a["risk_removed"] <= a["risk_before"] + 1e-9 for a in actions), "an action removes more risk than the unit has"
     risk_before = float(risk["risk_score"].sum(skipna=True))
     removed = float(sum(a["risk_removed"] for a in actions))
+    revealed = float(sum(a["risk_revealed"] for a in actions))
     return {"actions": actions, "total_cost": total_cost, "budget": budget, "risk_before": risk_before,
-            "risk_removed": removed, "risk_reduced_pct": 100 * removed / risk_before if risk_before > 0 else 0.0}
+            "risk_removed": removed, "risk_reduced_pct": 100 * removed / risk_before if risk_before > 0 else 0.0,
+            "risk_revealed": revealed, "value": removed + revealed,
+            "n_replace": sum(a["action"] == "replace" for a in actions),
+            "n_inspect": sum(a["action"] == "inspect" for a in actions)}
 
 
 # ----------------------------------------------------------------------------
 # the plan
 # ----------------------------------------------------------------------------
-def make_plan(risk: pd.DataFrame, costs: pd.DataFrame, budget: float) -> dict:
+def make_plan(risk: pd.DataFrame, costs: pd.DataFrame, budget: float, allow_inspect: bool = True) -> dict:
     """Choose at most one action per transformer to remove the most risk for the money.
 
     For every transformer the options are none / inspect / replace (replace only if allowed). This is a
@@ -149,7 +172,7 @@ def make_plan(risk: pd.DataFrame, costs: pd.DataFrame, budget: float) -> dict:
             c = _cost_of(lookup, "replace", row.get("rating_class"))
             if pd.notna(c) and c > 0:
                 opts.append((int(np.ceil(c / COST_UNIT)), replace_value(row), "replace", c))
-        if inspect_value(row) > 0:
+        if allow_inspect and inspect_value(row) > 0:          # allow_inspect=False: the replace-only comparison plan
             c = _cost_of(lookup, "inspect", row.get("rating_class"))
             if pd.notna(c) and c > 0:
                 opts.append((int(np.ceil(c / COST_UNIT)), inspect_value(row), "inspect", c))
@@ -180,9 +203,7 @@ def make_plan(risk: pd.DataFrame, costs: pd.DataFrame, budget: float) -> dict:
         if k >= 0:
             units, value, action, cost = options[i][k]
             row = risk.iloc[i]
-            actions.append({"transformer_id": row["transformer_id"], "action": action, "cost": cost,
-                            "risk_before": float(row["risk_score"]), "risk_removed": float(value),
-                            "rationale": _rationale(row, action, cost, value), "requires_approval": True})
+            actions.append(_action(row, action, cost, value, _rationale(row, action, cost, value)))
             b -= units
     actions.reverse()
     return _result(actions, risk, budget)
@@ -201,8 +222,5 @@ def age_plan(risk: pd.DataFrame, costs: pd.DataFrame, budget: float) -> dict:
         if pd.isna(c) or c <= 0 or spent + c > budget:
             continue                                                 # cannot afford this one, try the next oldest
         spent += c
-        value = replace_value(row)
-        actions.append({"transformer_id": row["transformer_id"], "action": "replace", "cost": c,
-                        "risk_before": float(row["risk_score"]), "risk_removed": float(value),
-                        "rationale": f"replace: age {row['age_years']:.0f} years (oldest first)", "requires_approval": True})
+        actions.append(_action(row, "replace", c, replace_value(row), f"replace: age {row['age_years']:.0f} years (oldest first)"))
     return _result(actions, risk, budget)

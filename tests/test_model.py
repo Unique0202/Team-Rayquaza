@@ -143,7 +143,7 @@ def test_imputation_is_fitted_on_training_rows_only():
     before = pipe.named_steps["impute"].statistics_.copy()
     pipe.predict_proba(X.assign(age_years=1e9))                                        # extreme "test" values change nothing
     assert np.array_equal(before, pipe.named_steps["impute"].statistics_)
-    assert set(pipe.named_steps) == {"impute", "scale", "clf"}                           # all preprocessing is a pipeline step
+    assert set(pipe.named_steps) == {"clip", "impute", "scale", "clf"}                   # all preprocessing is a pipeline step
 
 
 def test_metrics_match_hand_values():
@@ -263,3 +263,21 @@ def test_the_range_always_brackets_the_probability_and_stays_in_0_1():
     ok = s["status"] != "insufficient_data"
     assert ((s.loc[ok, "prob_low"] <= s.loc[ok, "failure_prob_12m"] + 1e-12) & (s.loc[ok, "failure_prob_12m"] <= s.loc[ok, "prob_high"] + 1e-12)).all()
     assert s.loc[ok, "prob_high"].le(1).all() and s.loc[ok, "prob_low"].ge(0).all()
+
+
+def test_saved_model_points_at_src_model_so_other_modules_can_load_it():
+    """Regression: `python -m src.model` once saved the class as __main__.FinalModel and the API could not load it."""
+    import subprocess, sys
+    out, _ = trained()
+    code = ("import joblib, sys; b = joblib.load(sys.argv[1]); "
+            "assert type(b['model']).__module__ == 'src.model', type(b['model']).__module__; print('ok')")
+    r = subprocess.run([sys.executable, "-c", code, str(out / "models/model.joblib")], capture_output=True, text=True,
+                       cwd=Path(__file__).resolve().parent.parent)
+    assert r.returncode == 0 and "ok" in r.stdout, r.stderr[-500:]
+
+
+def test_extreme_values_are_clipped_to_the_training_range_so_probabilities_stay_sane():
+    """Regression: one unit's acetylene far above training gave a 99.85% probability. Clipping is learned on training rows."""
+    clip = M.ClipToTrainingRange().fit(pd.DataFrame({"a": np.arange(1.0, 101.0), "b": np.arange(1.0, 101.0)}))
+    out = clip.transform(pd.DataFrame({"a": [1e6, np.nan], "b": [-1e6, 50.0]}))
+    assert out.loc[0, "a"] <= 100 and out.loc[0, "b"] >= 1 and np.isnan(out.loc[1, "a"]) and out.loc[1, "b"] == 50.0
